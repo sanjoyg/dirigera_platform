@@ -1,0 +1,50 @@
+{
+    "config": {
+      "error": {
+        "hub_connection_fail": "Could not connect to IKEA dirigera hub with these values, check IP & Token"
+      },
+      "step": {
+        "user": {
+          "data": {
+            "ip_address": "Hub IP"
+          },
+          "description": "Enter IKEA Dirigera Hub Details",
+          "title": "IKEA Dirigera Hub Setup"
+        },
+        "action": {
+          "data": {
+            "ip_address": "Hub IP"
+          },
+          "description": "Press the action button the dirigera hub and press Submit.",
+          "title": "IKEA Dirigera Hub Setup"
+        }
+      }
+    },
+    "options": {
+      "error": {
+        "hub_connection_fail": "Could not connect to IKEA dirigera hub with these values, check IP & Token"
+      },
+      "step": {
+        "init": {
+          "title": "IKEA Dirigera Hub Platform",
+          "data": {
+            "ip_address": "Hub IP",
+            "token": "token"
+          },
+          "description": "Update IKEA Dirigera Hub Setting..."
+        },
+        "action": {
+          "data": {
+            "ip_address": "Hub IP"
+          },
+          "description": "Press the action button the dirigera hub and press Submit.",
+          "title": "IKEA Dirigera Hub Setup"
+        }
+      }
+    },
+    "exceptions": {
+      "hub_exception": {
+        "message" : "Exception raised by Hub..."
+      }
+    }
+  }

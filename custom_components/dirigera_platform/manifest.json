@@ -1,0 +1,10 @@
+{
+    "domain": "dirigera_platform",
+    "name": "IKEA Dirigera Hub Integration",
+    "config_flow": true,
+    "after_dependencies": ["http"],
+    "requirements": ["dirigera"],
+    "iot_class": "local_polling",
+    "version": "0.0.1",
+    "loggers": ["custom_components.dirigera_platform"]
+}
