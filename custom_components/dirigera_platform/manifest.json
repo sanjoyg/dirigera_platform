@@ -1,13 +1,13 @@
 {
     "domain": "dirigera_platform",
     "name": "IKEA Dirigera Hub Integration",
-    "codeowners": ["@sanjoyg"],
-    "version": "0.0.1",
-    "documentation": "https://github.com/sanjoyg/dirigera_platform",
-    "issue_tracker": "https://github.com/sanjoyg/dirigera_platform",
-    "config_flow": true,
     "after_dependencies": ["http"],
-    "requirements": ["dirigera"],
+    "codeowners": ["@sanjoyg"],
+    "config_flow": true,
+    "documentation": "https://github.com/sanjoyg/dirigera_platform",
     "iot_class": "local_polling",
+    "issue_tracker": "https://github.com/sanjoyg/dirigera_platform",
     "loggers": ["custom_components.dirigera_platform"]
+    "requirements": ["dirigera"],
+    "version": "0.0.1",
 }
