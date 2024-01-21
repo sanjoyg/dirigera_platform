@@ -1,7 +1,7 @@
 {
     "domain": "dirigera_platform",
     "name": "IKEA Dirigera Hub Integration",
-    "codeowners": "[@sanjoyg]",
+    "codeowners": "[sanjoyg]",
     "version": "0.0.1",
     "documentation": "https://github.com/sanjoyg/dirigera_platform",
     "issue_tracker": "https://github.com/sanjoyg/dirigera_platform",
