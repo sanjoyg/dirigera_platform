@@ -22,3 +22,12 @@ This custom components help integrating HomeAssistant with the new IKEA Dirigera
 ## Testing installation with mock
 1. If you enter the IP as "mock" then mock bulbs and outlet will be adedd.
 2. Once you verify that the bulbs and outlets are added feel free to delete the integration
+
+## Raising Issue
+
+Now I dont have access to all sensors, hence what will be useful is when you raise an issue also supply to the JSON that the hub returns.
+To get the JSON do the following
+
+* Go to Developer -> Service and invoke dirigera_platform.dump_data without any parameters
+* Look at the HASS log which would have the JSON. 
+* If you see any platform errors include that as well
