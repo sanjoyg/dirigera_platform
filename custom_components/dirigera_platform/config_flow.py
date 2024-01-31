@@ -90,7 +90,7 @@ class dirigera_platform_config_flow(config_entries.ConfigFlow, domain=DOMAIN):
                 token = "mock"
             else:
                 token = await core.async_get_hass().async_add_executor_job(get_dirigera_token_step_two,self.ip, self.code, self.code_verifier)
-                logger.debug("Successful generating token")
+                logger.info("Successful generating token")
                 logger.debug(token)
             
             user_input[CONF_IP_ADDRESS] = self.ip
@@ -162,7 +162,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 token = "mock"
             else:
                 token = await core.async_get_hass().async_add_executor_job(get_dirigera_token_step_two,self.ip, self.code, self.code_verifier)
-                logger.debug("Successful generating token")
+                logger.info("Successful generating token")
                 logger.debug(token)
             
             user_input[CONF_IP_ADDRESS] = self.ip
