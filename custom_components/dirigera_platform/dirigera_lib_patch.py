@@ -2,6 +2,7 @@ from dirigera import Hub
 from dirigera.devices.device import Attributes
 from dirigera.devices.motion_sensor import MotionSensor
 from dirigera.devices.open_close_sensor import OpenCloseSensor, dict_to_open_close_sensor
+from dirigera.devices.environment_sensor import EnvironmentSensor, dict_to_environment_sensor
 from dirigera.hub.abstract_smart_home_hub import AbstractSmartHomeHub
 from typing import Any, Dict, List
 
@@ -38,3 +39,9 @@ class HubX(Hub):
         if open_close_sensor["deviceType"] != "openCloseSensor":
             raise ValueError("Device is not an OpenCloseSensor")
         return dict_to_open_close_sensor(open_close_sensor, self)
+    
+    def get_environment_sensor_by_id(self, id_: str) -> OpenCloseSensor:
+        environment_sensor = self._get_device_data_by_id(id_)
+        if environment_sensor["deviceType"] != "environmentSensor":
+            raise ValueError("Device is not an EnvironmentSensor")
+        return dict_to_environment_sensor(environment_sensor, self)
