@@ -1,5 +1,12 @@
-# IKEA Dirigera Hub Integration
+## IKEA Dirigera Hub Integration
 This custom components help integrating HomeAssistant with the new IKEA Dirigera hub. This integration is a scaffolding on the great work done by Nicolas Hilberg  at https://github.com/Leggin/dirigera
+
+Supports
+* Lights
+* Outlets
+* Open/Close Sensors
+* Motion Sensor
+* Environment Sensor
 
 ## Pre-requisite
 1. Identify the IP of the gateway - Usually looking at the client list in your home router interface will give that.
@@ -20,8 +27,31 @@ This custom components help integrating HomeAssistant with the new IKEA Dirigera
     b. Outlets
 
 ## Testing installation with mock
-1. If you enter the IP as "mock" then mock bulbs and outlet will be adedd.
+1. If you enter the IP as "mock" then mock bulbs and outlet will be added.
 2. Once you verify that the bulbs and outlets are added feel free to delete the integration
+
+Here is how it looks
+
+1. After you have downloaded the integration from HACS and go to Setting -> Integration -> ADD INTEGRATION to add the dirigera integration, the following screen will come up
+
+![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-ip-details.png)
+
+To test the integration, enter the IP as "mock"
+
+![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-mock.png)
+
+The integration would prompt to press the action button on the hub
+
+![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-press-action.png)
+
+Since this is mock, we would get a success message
+
+![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-hub-setup-complete-mock.png)
+
+Once this is complete you would see two bulbs and two outlets appearing.
+
+![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/mock-lights.png)
+![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/mock-outlets.png)
 
 ## Raising Issue
 
@@ -31,3 +61,5 @@ To get the JSON do the following
 * Go to Developer -> Service and invoke dirigera_platform.dump_data without any parameters
 * Look at the HASS log which would have the JSON. 
 * If you see any platform errors include that as well
+
+
