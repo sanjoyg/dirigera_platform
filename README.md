@@ -25,6 +25,10 @@ Supports
 3. If the IP is right and action button has been pressed, then the integration will be added and all devices registed will be shows. At this time the following device types are supported
     a. Lights
     b. Outlets
+    c. Motion Sensor
+    d. VindStyrka Environment Sensor
+    e. Blinds               [ Experimental - need help with JSON dump ]
+    f. STYRBAR Remotes      [ Experimental - need help with JSON dump ]
 
 ## Testing installation with mock
 1. If you enter the IP as "mock" then mock bulbs and outlet will be added.

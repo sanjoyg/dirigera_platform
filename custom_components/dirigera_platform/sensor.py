@@ -19,7 +19,7 @@ async def async_setup_entry(
     config_entry: config_entries.ConfigEntry,
     async_add_entities,
 ):
-    logger.debug("EnvSensor Starting async_setup_entry")
+    logger.debug("EnvSensor & Controllers Starting async_setup_entry")
     """Setup sensors from a config entry created in the integrations UI."""
     config = hass.data[DOMAIN][config_entry.entry_id]
     logger.debug(config)
@@ -27,17 +27,26 @@ async def async_setup_entry(
     hub = HubX(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
     
     env_devices = []
+    controller_devices = []
 
     # If mock then start with mocks
     if config[CONF_IP_ADDRESS] == "mock": 
-        logger.warning("Setting up mock enviroment sensors")
+        logger.warning("Setting up mock environment sensors")
         from .mocks.ikea_vindstyrka_mock import ikea_vindstyrka_device_mock
         mock_env_device = ikea_vindstyrka_device_mock(hub,"mock_env_sensor1")
         env_devices = [mock_env_device] 
+
+        logger.warning("Setting up mock controllers")
+        from .mocks.ikea_controller_mock import ikea_controller_mock
+        mock_controller1 = ikea_controller_mock()
+        controller_devices = [mock_controller1]
     else:            
         hub_devices = await hass.async_add_executor_job(hub.get_environment_sensors)
         env_devices = [ikea_vindstyrka_device(hub, env_device) for env_device in hub_devices]
 
+        hub_controllers = await hass.async_add_executor_job(hub.get_controllers)
+        controller_devices = [ikea_controller(hub, controller_device) for controller_device in hub_controllers]
+    
     env_sensors = []
     for env_device in env_devices:
         # For each device setup up multiple entities
@@ -52,8 +61,9 @@ async def async_setup_entry(
     logger.debug("Found {} env entities to setup...".format(len(env_sensors)))
 
     async_add_entities(env_sensors)
+    async_add_entities(controller_devices)
 
-    logger.debug("EnvSensor Complete async_setup_entry")
+    logger.debug("EnvSensor & Controllers Complete async_setup_entry")
 
 class ikea_vindstyrka_device:
     def __init__(self, hub, json_data) -> None:
@@ -238,3 +248,60 @@ class ikea_vindstyrka_voc_index(ikea_env_base_entity):
     @property
     def native_unit_of_measurement(self) -> str:
         return "µg/m³"
+
+class ikea_controller(SensorEntity):
+    def __init__(self, hub, json_data):
+        logger.debug("ikea_controller ctor...")
+        self._hub = hub 
+        self._json_data = json_data
+    
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={("dirigera_platform",self._json_data.id)},
+            name = self._json_data.attributes.custom_name,
+            manufacturer = self._json_data.attributes.manufacturer,
+            model=self._json_data.attributes.model ,
+            sw_version=self._json_data.attributes.firmware_version
+        )
+    
+    @property
+    def available(self):
+        return self._json_data.is_reachable
+    
+    @property
+    def unique_id(self):
+        return self._json_data.id 
+    
+    @property
+    def available(self):
+        return self._json_data.is_reachable
+    
+    @property
+    def name(self):
+        return self._json_data.attributes.custom_name 
+    
+    @property
+    def is_on(self):
+        return self._json_data.attributes.is_on
+    
+    @property
+    def device_info(self) -> DeviceInfo:
+        return SensorDeviceClass.BATTERY
+    
+    @property
+    def native_value(self):
+        return self._json_data.attributes.battery_percentage
+
+    @property
+    def native_unit_of_measurement(self) -> str:
+        return "%"
+    
+    def update(self):
+        logger.debug("controller update...")
+        try:
+            self._json_data = self._hub.get_controller_by_name(self._json_data.attributes.custom_name)
+        except Exception as ex:
+            logger.error("error encountered running update on : {}".format(self.name))
+            logger.error(ex)
+            raise HomeAssistantError(ex,DOMAIN,"hub_exception")

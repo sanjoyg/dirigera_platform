@@ -45,3 +45,9 @@ class HubX(Hub):
         if environment_sensor["deviceType"] != "environmentSensor":
             raise ValueError("Device is not an EnvironmentSensor")
         return dict_to_environment_sensor(environment_sensor, self)
+    
+    def get_blinds_by_id(self, id_: str) -> OpenCloseSensor:
+        blind_sensor = self._get_device_data_by_id(id_)
+        if blind_sensor["deviceType"] != "blinds":
+            raise ValueError("Device is not a Blind")
+        return dict_to_environment_sensor(blind_sensor, self)
