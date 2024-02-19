@@ -7,6 +7,8 @@ Supports
 * Open/Close Sensors
 * Motion Sensor
 * Environment Sensor
+* Blinds               [ Experimental - need help with JSON dump ]
+* STYRBAR Remotes      [ Experimental - need help with JSON dump ]
 
 ## Pre-requisite
 1. Identify the IP of the gateway - Usually looking at the client list in your home router interface will give that.
