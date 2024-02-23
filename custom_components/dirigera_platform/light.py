@@ -160,7 +160,7 @@ class ikea_bulb(LightEntity):
                 logger.debug("Request to set color HS")
                 hs_tuple = kwargs[ATTR_HS_COLOR]
                 self._color_hue = hs_tuple[0]
-                self._color_saturation = hs_tuple[1]/100
+                self._color_saturation = hs_tuple[1]
                 # Saturation is 0 - 1 at IKEA
                 self._json_data.set_light_color(self._color_hue, self._color_saturation/100)
 
