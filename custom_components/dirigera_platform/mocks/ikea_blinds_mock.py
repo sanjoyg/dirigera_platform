@@ -105,12 +105,15 @@ class ikea_blinds_mock(CoverEntity):
     
     def set_cover_position(self, **kwargs):
         logger.debug("blinds set_cover_position {}".format(kwargs))
+        logger.debug(kwargs['position'])
         logger.debug("Current: {}, Target: {}".format(self._current_level, self._target_level))
 
-        position = int(kwargs[0])
-        if position >= 0 and position <= 100:
-            self._target_level = position
-            self._current_level = position
-    
+        if 'position' in kwargs:
+            position = kwargs['position']
+            if position >= 0 and position <= 100:
+                self._target_level = position
+                self._current_level = position
+                logger.debug("Now: Current: {}, Target: {}".format(self._current_level, self._target_level))
+
     async def async_will_remove_from_hass(self) -> None:
         ikea_blinds_mock.counter = ikea_blinds_mock.counter - 1
