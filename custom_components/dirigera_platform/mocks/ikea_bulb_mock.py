@@ -29,8 +29,8 @@ class ikea_bulb_mock(LightEntity):
         self._color_temp = 3000
         self._min_color_temp = 2202
         self._max_color_temp = 4000
-        self._hue = 0.0
-        self._saturation = 0.0
+        self._color_hue = 0.0
+        self._color_saturation = 0.0
         self._brightness = 100
         self._is_on = False 
     
@@ -73,7 +73,7 @@ class ikea_bulb_mock(LightEntity):
     
     @property
     def hs_color(self):
-        return (self._hue, self._saturation)
+        return (self._color_hue, self._color_saturation)
     
     @property
     def is_on(self):
@@ -112,9 +112,12 @@ class ikea_bulb_mock(LightEntity):
         if ATTR_HS_COLOR in kwargs:
             logger.debug("Request to set color HS")
             hs_tuple = kwargs[ATTR_HS_COLOR]
-            self._hue = hs_tuple[0]
-            self._saturation = hs_tuple[1]
+            self._color_hue = hs_tuple[0]
+            self._color_saturation = hs_tuple[1]
 
     def turn_off(self, **kwargs):
         logger.debug("turn_off...")
         self._is_on = False 
+    
+    async def async_will_remove_from_hass(self) -> None:
+        ikea_bulb_mock.counter = ikea_bulb_mock.counter - 1

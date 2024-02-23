@@ -114,7 +114,7 @@ class ikea_bulb(LightEntity):
 
     @property
     def hs_color(self):
-        return (self._json_data.attributes.hue, self._json_data.attributes.saturation)
+        return (self._json_data.attributes.color_hue, self._json_data.attributes.color_saturation)
     
     @property
     def is_on(self):
@@ -159,9 +159,9 @@ class ikea_bulb(LightEntity):
             if ATTR_HS_COLOR in kwargs:
                 logger.debug("Request to set color HS")
                 hs_tuple = kwargs[ATTR_HS_COLOR]
-                self._hue = hs_tuple[0]
-                self._saturation = hs_tuple[1]
-                self._json_data.set_color_temperature(self._hue, self._saturation)
+                self._color_hue = hs_tuple[0]
+                self._color_saturation = hs_tuple[1]
+                self._json_data.set_color_temperature(self._color_hue, self._color_saturation)
 
         except Exception as ex:
             logger.error("error encountered turning on : {}".format(self.name))

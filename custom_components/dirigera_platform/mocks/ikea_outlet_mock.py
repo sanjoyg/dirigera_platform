@@ -51,3 +51,6 @@ class ikea_outlet_mock(SwitchEntity):
     
     def update(self):
         pass
+
+    async def async_will_remove_from_hass(self) -> None:
+        ikea_outlet_mock.counter = ikea_outlet_mock.counter - 1

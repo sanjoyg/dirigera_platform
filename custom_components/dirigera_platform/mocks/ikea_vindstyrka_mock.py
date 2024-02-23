@@ -13,7 +13,7 @@ logger = logging.getLogger("custom_components.dirigera_platform")
 class ikea_vindstyrka_device_mock(ikea_vindstyrka_device):
     counter = 0
     
-    def __init__(self, hub, json_data) -> None:
+    def __init__(self) -> None:
         logger.debug("ikea_vindstyrka_device_mock ctor")
         ikea_vindstyrka_device_mock.counter= ikea_vindstyrka_device_mock.counter + 1
         self._unique_id = "E1907151129080101_" + str(ikea_vindstyrka_device_mock.counter)
@@ -71,3 +71,6 @@ class ikea_vindstyrka_device_mock(ikea_vindstyrka_device):
     
     def unique_id(self):
         return self._unique_id
+    
+    async def async_will_remove_from_hass(self) -> None:
+        ikea_vindstyrka_device_mock.counter = ikea_vindstyrka_device_mock.counter - 1

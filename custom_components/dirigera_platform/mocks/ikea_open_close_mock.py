@@ -45,3 +45,6 @@ class ikea_open_close_mock(BinarySensorEntity):
         
     def update(self):
         pass
+
+    async def async_will_remove_from_hass(self) -> None:
+        ikea_open_close_mock.counter = ikea_open_close_mock.counter - 1

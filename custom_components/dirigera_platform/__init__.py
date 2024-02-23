@@ -89,11 +89,16 @@ async def options_update_listener(hass: core.HomeAssistant, config_entry: config
 
 async def async_unload_entry(hass: core.HomeAssistant, entry: config_entries.ConfigEntry) -> bool:
     logger.debug("Starting async_unload_entry")
+    
     """Unload a config entry."""
     unload_ok = all(
         [await asyncio.gather(
             *[hass.config_entries.async_forward_entry_unload(entry, "light"),
-              hass.config_entries.async_forward_entry_unload(entry, "switch")]
+              hass.config_entries.async_forward_entry_unload(entry, "switch"),
+              hass.config_entries.async_forward_entry_unload(entry, "binary_sensor"),
+              hass.config_entries.async_forward_entry_unload(entry, "sensor"),
+              hass.config_entries.async_forward_entry_unload(entry, "cover")
+              ]
         )]
     )
     # Remove options_update_listener.

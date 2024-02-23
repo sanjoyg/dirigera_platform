@@ -111,3 +111,6 @@ class ikea_blinds_mock(CoverEntity):
         if position >= 0 and position <= 100:
             self._target_level = position
             self._current_level = position
+    
+    async def async_will_remove_from_hass(self) -> None:
+        ikea_blinds_mock.counter = ikea_blinds_mock.counter - 1

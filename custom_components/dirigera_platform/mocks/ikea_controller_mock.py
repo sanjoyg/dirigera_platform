@@ -69,3 +69,6 @@ class ikea_controller_mock(SensorEntity):
     @property
     def native_unit_of_measurement(self) -> str:
         return "%"
+    
+    async def async_will_remove_from_hass(self) -> None:
+        ikea_controller_mock.counter = ikea_controller_mock.counter - 1

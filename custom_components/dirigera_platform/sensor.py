@@ -33,13 +33,15 @@ async def async_setup_entry(
     if config[CONF_IP_ADDRESS] == "mock": 
         logger.warning("Setting up mock environment sensors")
         from .mocks.ikea_vindstyrka_mock import ikea_vindstyrka_device_mock
-        mock_env_device = ikea_vindstyrka_device_mock(hub,"mock_env_sensor1")
+        mock_env_device = ikea_vindstyrka_device_mock()
         env_devices = [mock_env_device] 
 
         logger.warning("Setting up mock controllers")
         from .mocks.ikea_controller_mock import ikea_controller_mock
         mock_controller1 = ikea_controller_mock()
         controller_devices = [mock_controller1]
+
+        ikea_vindstyrka_temperature.async_will_remove_from_hass = ikea_vindstyrka_device_mock.async_will_remove_from_hass
     else:            
         hub_devices = await hass.async_add_executor_job(hub.get_environment_sensors)
         env_devices = [ikea_vindstyrka_device(hub, env_device) for env_device in hub_devices]
