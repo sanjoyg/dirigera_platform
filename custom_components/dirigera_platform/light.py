@@ -161,7 +161,7 @@ class ikea_bulb(LightEntity):
                 hs_tuple = kwargs[ATTR_HS_COLOR]
                 self._color_hue = hs_tuple[0]
                 self._color_saturation = hs_tuple[1]
-                self._json_data.set_color_temperature(self._color_hue, self._color_saturation)
+                self._json_data.set_light_color(self._color_hue, self._color_saturation)
 
         except Exception as ex:
             logger.error("error encountered turning on : {}".format(self.name))
