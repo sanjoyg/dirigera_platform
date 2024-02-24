@@ -99,6 +99,7 @@ class ikea_bulb(LightEntity):
     @property
     def brightness(self):
         scaled = int((self._json_data.attributes.light_level/100)*255)
+        return scaled
 
     @property
     def max_color_temp_kelvin(self):
