@@ -29,7 +29,7 @@ async def async_setup_entry(hass: core.HomeAssistant, config_entry: config_entri
         mock_blind2 = ikea_blinds_mock(hub,"mock_blind2")
         blinds = [mock_blind1,mock_blind2] 
     else:
-        hub_blinds = await hass.async_add_executor_job(hub.get_outlets)
+        hub_blinds = await hass.async_add_executor_job(hub.get_blinds)
         blinds = [ikea_blinds(hub, blind) for blind in hub_blinds]
     
     logger.debug("Found {} blinds entities to setup...".format(len(blinds)))
