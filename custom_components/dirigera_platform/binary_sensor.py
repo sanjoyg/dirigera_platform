@@ -33,13 +33,12 @@ async def async_setup_entry(
     if config[CONF_IP_ADDRESS] == "mock":   
         logger.warning("Setting up mock motion sensors")
         mock_motion_sensor1 = ikea_motion_sensor_mock()
-        mock_motion_sensor2 = ikea_motion_sensor_mock()
-        motion_sensors = [mock_motion_sensor1,mock_motion_sensor2] 
+        motion_sensors = [mock_motion_sensor1] 
 
         logger.warning("Setting up mock open/close sensors")
         mock_open_close_sensor1 = ikea_open_close_mock()
         mock_open_close_sensor2 = ikea_open_close_mock()
-        open_close_sensors = [mock_open_close_sensor1,mock_open_close_sensor2] 
+        open_close_sensors = [mock_open_close_sensor1] 
 
     else:            
         hub_motion_sensors = await hass.async_add_executor_job(hub.get_motion_sensors)

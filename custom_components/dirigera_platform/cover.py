@@ -26,8 +26,7 @@ async def async_setup_entry(hass: core.HomeAssistant, config_entry: config_entri
     if config[CONF_IP_ADDRESS] == "mock":   
         logger.warning("Setting up mock blinds...")
         mock_blind1 = ikea_blinds_mock(hub,"mock_blind1")
-        mock_blind2 = ikea_blinds_mock(hub,"mock_blind2")
-        blinds = [mock_blind1,mock_blind2] 
+        blinds = [mock_blind1] 
     else:
         hub_blinds = await hass.async_add_executor_job(hub.get_blinds)
         blinds = [ikea_blinds(hub, blind) for blind in hub_blinds]

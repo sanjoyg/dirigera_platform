@@ -39,8 +39,7 @@ async def async_setup_entry(
     if config[CONF_IP_ADDRESS] == "mock":   
         logger.warning("Setting up mock bulbs")
         mock_bulb1 = ikea_bulb_mock()
-        mock_bulb2 = ikea_bulb_mock()
-        lights = [mock_bulb1,mock_bulb2] 
+        lights = [mock_bulb1] 
     else:            
         hub_lights = await hass.async_add_executor_job(hub.get_lights)
         lights = [ikea_bulb(hub, light) for light in hub_lights]

@@ -26,8 +26,7 @@ async def async_setup_entry(hass: core.HomeAssistant, config_entry: config_entri
     if config[CONF_IP_ADDRESS] == "mock":   
         logger.warning("Setting up mock outlets...")
         mock_outlet1 = ikea_outlet_mock(hub,"mock_outlet1")
-        mock_outlet2 = ikea_outlet_mock(hub,"mock_outlet2")
-        outlets = [mock_outlet1,mock_outlet2] 
+        outlets = [mock_outlet1] 
     else:
         hub_outlets = await hass.async_add_executor_job(hub.get_outlets)
         outlets = [ikea_outlet(hub, outlet) for outlet in hub_outlets]
