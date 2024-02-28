@@ -128,8 +128,8 @@ class ikea_env_base_entity(SensorEntity):
     def __init__(self, ikea_env_device: ikea_vindstyrka_device, id_suffix : str, name_suffix: str):
         logger.debug("ikea_env_base_entity ctor...")
         self._ikea_env_device = ikea_env_device
-        self._unique_id = self._ikea_env_device.unique_id() + id_suffix
-        self._name = self._ikea_env_device.name() + " " + name_suffix
+        self._unique_id = self._ikea_env_device.unique_id + id_suffix
+        self._name = self._ikea_env_device.name + " " + name_suffix
     
     @property
     def available(self):
@@ -164,7 +164,7 @@ class ikea_vindstyrka_temperature(ikea_env_base_entity):
         return SensorDeviceClass.TEMPERATURE;  
 
     @property
-    def native_value(self) -> int:
+    def native_value(self) -> float:
         return self._ikea_env_device.get_current_temperature()
 
     @property

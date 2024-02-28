@@ -3,6 +3,7 @@ from dirigera.devices.device import Attributes
 from dirigera.devices.motion_sensor import MotionSensor
 from dirigera.devices.open_close_sensor import OpenCloseSensor, dict_to_open_close_sensor
 from dirigera.devices.environment_sensor import EnvironmentSensor, dict_to_environment_sensor
+from dirigera.devices.air_purifier import AirPurifier, dict_to_air_purifier
 from dirigera.hub.abstract_smart_home_hub import AbstractSmartHomeHub
 from typing import Any, Dict, List
 
@@ -51,3 +52,9 @@ class HubX(Hub):
         if blind_sensor["deviceType"] != "blinds":
             raise ValueError("Device is not a Blind")
         return dict_to_environment_sensor(blind_sensor, self)
+    
+    def get_air_purifier_by_id(self, id_: str) -> AirPurifier:
+        air_purifier_device = self._get_device_data_by_id(id_)
+        if air_purifier_device["deviceType"] != "airPurifier":
+            raise ValueError("Device is not an Air Purifier")
+        return dict_to_air_purifier(air_purifier_device, self)        

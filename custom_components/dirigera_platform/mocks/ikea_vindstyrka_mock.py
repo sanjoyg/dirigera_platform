@@ -66,9 +66,11 @@ class ikea_vindstyrka_device_mock(ikea_vindstyrka_device):
             sw_version="mock sw"
         )
 
+    @property
     def name(self) -> str:
         return self._name
     
+    @property
     def unique_id(self):
         return self._unique_id
     

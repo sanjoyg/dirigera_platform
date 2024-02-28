@@ -38,8 +38,8 @@ async def async_setup_entry(
     # If mock then start with mocks
     if config[CONF_IP_ADDRESS] == "mock":   
         logger.warning("Setting up mock bulbs")
-        mock_bulb1 = ikea_bulb_mock(hub,"mock_bulb1")
-        mock_bulb2 = ikea_bulb_mock(hub,"mock_bulb2")
+        mock_bulb1 = ikea_bulb_mock()
+        mock_bulb2 = ikea_bulb_mock()
         lights = [mock_bulb1,mock_bulb2] 
     else:            
         hub_lights = await hass.async_add_executor_job(hub.get_lights)
@@ -50,6 +50,8 @@ async def async_setup_entry(
     logger.debug("LIGHT Complete async_setup_entry")
 
 class ikea_bulb(LightEntity):
+    _attr_has_entity_name = True
+    
     def __init__(self, hub, json_data) -> None:
         logger.debug("ikea_bulb ctor...")
         self._hub = hub 

@@ -122,7 +122,7 @@ class ikea_blinds(CoverEntity):
             self._json_data.set_target_position(position)
 
     def update(self):
-        logger.debug("outlet update...")
+        logger.debug("cover update...")
         try:
             self._json_data = self._hub.get_blinds_by_id(self._json_data.id)
         except Exception as ex:

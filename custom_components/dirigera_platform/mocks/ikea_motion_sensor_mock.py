@@ -7,9 +7,7 @@ logger = logging.getLogger("custom_components.dirigera_platform")
 
 class ikea_motion_sensor_mock(BinarySensorEntity):
     counter = 0
-    def __init__(self, hub, hub_outlet):
-        self._hub = hub 
-        self._hub_outlet = hub_outlet
+    def __init__(self):
         ikea_motion_sensor_mock.counter = ikea_motion_sensor_mock.counter + 1
         
         self._manufacturer = "IKEA of Sweden"

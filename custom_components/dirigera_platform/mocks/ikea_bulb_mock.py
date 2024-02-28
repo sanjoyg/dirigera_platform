@@ -13,9 +13,8 @@ logger = logging.getLogger("custom_components.dirigera_platform")
  
 class ikea_bulb_mock(LightEntity):
     counter = 0
-    def __init__(self, hub, hub_light) -> None:
+    def __init__(self) -> None:
         logger.debug("ikea_bulb mock ctor...")
-        self._hub = hub 
         ikea_bulb_mock.counter = ikea_bulb_mock.counter + 1
         
         self._manufacturer = "IKEA of Sweden"
