@@ -7,8 +7,9 @@ Supports
 * Open/Close Sensors
 * Motion Sensor
 * Environment Sensor
-* Blinds               [ Experimental - need help with JSON dump ]
-* STYRBAR Remotes      [ Experimental - need help with JSON dump ]
+* Blinds               
+* STYRBAR Remotes      
+* AirPurifier
 
 ## Pre-requisite
 1. Identify the IP of the gateway - Usually looking at the client list in your home router interface will give that.
@@ -29,8 +30,9 @@ Supports
     b. Outlets
     c. Motion Sensor
     d. VindStyrka Environment Sensor
-    e. Blinds               [ Experimental - need help with JSON dump ]
-    f. STYRBAR Remotes      [ Experimental - need help with JSON dump ]
+    e. Blinds               
+    f. STYRBAR Remotes      
+    g. AirPurifier
 
 ## Testing installation with mock
 1. If you enter the IP as "mock" then mock bulbs and outlet will be added.
