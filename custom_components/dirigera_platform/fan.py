@@ -122,7 +122,7 @@ class ikea_starkvind_air_purifier_device:
     
     @property
     def motor_state(self) -> int:
-        return self._json_data.motor_state 
+        return self._json_data.attributes.motor_state 
     
     @property
     def percentage(self) -> int:
@@ -131,7 +131,7 @@ class ikea_starkvind_air_purifier_device:
     
     @property
     def fan_mode_sequence(self) -> str:
-        return self._json_data.fan_mode_sequence 
+        return self._json_data.attributes.fan_mode_sequence 
     
     @property
     def preset_modes(self):
@@ -139,7 +139,7 @@ class ikea_starkvind_air_purifier_device:
     
     @property
     def preset_mode(self) -> str:
-        return self._json_data.fan_mode 
+        return self._json_data.attributes.fan_mode 
     
     @property
     def speed_count(self):
@@ -147,31 +147,31 @@ class ikea_starkvind_air_purifier_device:
     
     @property
     def motor_runtime(self):
-        return self._json_data.motor_runtime 
+        return self._json_data.attributes.motor_runtime
     
     @property
     def filter_alarm_status(self) -> bool:
-        return self._json_data.fan_alarm_status 
+        return self._json_data.attributes.filter_alarm_status 
     
     @property
     def filter_elapsed_time(self) -> int:
-        return self._json_data.filter_elapsed_time
+        return self._json_data.attributes.filter_elapsed_time 
     
     @property
     def filter_lifetime(self) -> int:
-        return self._json_data.filter_lifetime
+        return self._json_data.attributes.filter_lifetime
     
     @property
     def current_p_m25(self) -> int:
-        return self._json_data.current_p_m25
+        return self._json_data.attributes.current_p_m25
     
     @property
     def status_light(self) -> bool:
-        return self._json_data.status_light
+        return self._json_data.attributes.status_light
     
     @property
     def child_lock(self) -> bool:
-        return self._json_data.child_lock
+        return self._json_data.attributes.child_lock
 
     @property
     def is_on(self):
@@ -183,7 +183,7 @@ class ikea_starkvind_air_purifier_device:
         # Convert percent to speed
         desired_speed = math.ceil(percentage * 50 / 100)
         logger.debug("set_percentage got : {}, scaled to : {}".format(percentage, desired_speed))
-        self.json_data.set_motor_state(desired_speed)    
+        self._json_data.set_motor_state(desired_speed)    
 
     def set_status_light(self, status:bool) -> None:
         logger.debug("set_status_light : {}".format(status))
@@ -195,18 +195,18 @@ class ikea_starkvind_air_purifier_device:
 
     def set_fan_mode(self, preset_mode: FanModeEnum) -> None:
         logger.debug("set_fan_mode : {}".format(preset_mode.value))
-        self.json_data.set_fan_mode(preset_mode)
+        self._json_data.set_fan_mode(preset_mode)
 
     def set_preset_mode(self, preset_mode: str):
         logger.debug("set_preset_mode : {}".format(preset_mode))
         mode_to_set = None 
-        if preset_mode == FanModeEnum.AUTO:
+        if preset_mode == 'auto':
             mode_to_set = FanModeEnum.AUTO
-        elif preset_mode == FanModeEnum.HIGH:
+        elif preset_mode == 'high':
             mode_to_set = FanModeEnum.HIGH
-        elif preset_mode == FanModeEnum.MEDIUM:
+        elif preset_mode == 'medium':
             mode_to_set = FanModeEnum.MEDIUM
-        elif preset_mode == FanModeEnum.LOW:
+        elif preset_mode == 'low':
             mode_to_set = FanModeEnum.LOW
     
         if mode_to_set is None:
@@ -316,7 +316,7 @@ class ikea_starkvind_air_purifier_sensor(SensorEntity):
 
     @property
     def icon(self):
-        return "mdi:air-filter"
+        return self._icon
     
     @property
     def name(self):
@@ -358,6 +358,10 @@ class ikea_starkvind_air_purifier_binary_sensor(BinarySensorEntity):
         self._device.update()
 
     @property
+    def icon(self):
+        return self._icon
+
+    @property
     def name(self):
         return self._device.name + " " + self._prefix.replace("_"," ")  
     
@@ -397,6 +401,10 @@ class ikea_starkvind_air_purifier_switch_sensor(SwitchEntity):
 
     def update(self):
         self._device.update()
+
+    @property
+    def icon(self):
+        return self._icon
 
     @property
     def name(self):
