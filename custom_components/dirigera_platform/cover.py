@@ -110,10 +110,10 @@ class ikea_blinds(CoverEntity):
         return False 
 
     def open_cover(self, **kwargs):
-        self._json_data.set_target_position(0)
+        self._json_data.set_target_level(0)
         
     def close_cover(self, **kwargs):
-        self._json_data.set_target_position(100)
+        self._json_data.set_target_level(100)
     
     def set_cover_position(self, **kwargs):
         position = int(kwargs['position'])
