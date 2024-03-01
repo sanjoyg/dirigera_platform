@@ -118,7 +118,7 @@ class ikea_blinds(CoverEntity):
     def set_cover_position(self, **kwargs):
         position = int(kwargs['position'])
         if position >= 0 and position <= 100:
-            self._json_data.set_target_position(position)
+            self._json_data.set_target_level(position)
 
     def update(self):
         logger.debug("cover update...")
