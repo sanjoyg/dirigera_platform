@@ -3,7 +3,10 @@ import logging
 import dirigera
 
 from homeassistant import config_entries, core
-from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntity,
+)
 from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from homeassistant.core import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
@@ -117,6 +120,28 @@ class ikea_open_close(ikea_motion_sensor):
         self._hub = hub
         self._json_data = json_data
 
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={("dirigera_platform", self._json_data.id)},
+            name=self._json_data.attributes.custom_name,
+            manufacturer=self._json_data.attributes.manufacturer,
+            model=self._json_data.attributes.model,
+            sw_version=self._json_data.attributes.firmware_version,
+        )
+
+    @property
+    def device_class(self) -> str:
+        return BinarySensorDeviceClass.WINDOW
+
+    @property
+    def name(self):
+        return self._json_data.attributes.custom_name
+
+    @property
+    def is_on(self):
+        return self._json_data.attributes.is_open
+
     def update(self):
         logger.debug("open close sensor update...")
         try:
@@ -125,6 +150,3 @@ class ikea_open_close(ikea_motion_sensor):
             logger.error("error encountered running update on : {}".format(self.name))
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
-
-    def is_on(self):
-        return self._json_data.attributes.is_open
