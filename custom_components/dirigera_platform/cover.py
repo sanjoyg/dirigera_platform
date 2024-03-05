@@ -77,24 +77,24 @@ class ikea_blinds(CoverEntity):
     
     @property
     def current_cover_position(self):
-        return self._json_data.attributes.blinds_current_level
+        return 100 - self._json_data.attributes.blinds_current_level
     
     @property 
     def target_cover_position(self):
-        return self._json_data.attributes.blinds_target_level
+        return 100 - self._json_data.attributes.blinds_target_level
     
     @property
     def is_closed(self):
         if self.current_cover_position is None:
             return False 
-        return self.current_cover_position == 100 
+        return self.current_cover_position == 0
     
     @property
     def is_closing(self):
         if self.current_cover_position is None or self.target_cover_position is False:
             return False 
         
-        if self.current_cover_position != 100 and self.target_cover_position == 100:
+        if self.current_cover_position != 0 and self.target_cover_position == 0:
             return True
              
         return False 
@@ -104,7 +104,7 @@ class ikea_blinds(CoverEntity):
         if self.current_cover_position is None or self.target_cover_position is False:
             return False 
         
-        if self.current_cover_position != 0 and self.target_cover_position == 0:
+        if self.current_cover_position != 100 and self.target_cover_position == 100:
             return True    
     
         return False 
@@ -118,7 +118,7 @@ class ikea_blinds(CoverEntity):
     def set_cover_position(self, **kwargs):
         position = int(kwargs['position'])
         if position >= 0 and position <= 100:
-            self._json_data.set_target_level(position)
+            self._json_data.set_target_level(100 - position)
 
     def update(self):
         logger.debug("cover update...")
