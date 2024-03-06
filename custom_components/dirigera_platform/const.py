@@ -1,1 +1,1 @@
-DOMAIN="dirigera_platform"
+DOMAIN = "dirigera_platform"
