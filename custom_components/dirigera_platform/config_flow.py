@@ -107,7 +107,6 @@ class dirigera_platform_config_flow(config_entries.ConfigFlow, domain=DOMAIN):
                     get_dirigera_token_step_two, self.ip, self.code, self.code_verifier
                 )
                 logger.info("Successful generating token")
-                logger.debug(token)
 
             user_input[CONF_IP_ADDRESS] = self.ip
             user_input[CONF_TOKEN] = token

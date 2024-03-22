@@ -42,7 +42,6 @@ async def async_setup_entry(
 
         logger.warning("Setting up mock open/close sensors")
         mock_open_close_sensor1 = ikea_open_close_mock()
-        mock_open_close_sensor2 = ikea_open_close_mock()
         open_close_sensors = [mock_open_close_sensor1]
 
     else:
