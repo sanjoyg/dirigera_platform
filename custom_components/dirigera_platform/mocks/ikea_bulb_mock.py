@@ -31,6 +31,18 @@ class ikea_bulb_mock(LightEntity):
             ColorMode.COLOR_TEMP,
             ColorMode.HS,
         ]
+        
+        if len(self._supported_color_modes) == 0:
+            logger.debug("Color modes array is zero, setting to UNKNOWN")
+            self._supported_color_modes = [ColorMode.UNKNOWN]
+        else:
+            if ColorMode.HS in self._supported_color_modes:
+                self._color_mode = ColorMode.HS
+            elif ColorMode.COLOR_TEMP in self._supported_color_modes:
+                self._color_mode = ColorMode.COLOR_TEMP
+            elif ColorMode.BRIGHTNESS in self._supported_color_modesor_modes:
+                self._color_mode = ColorMode.BRIGHTNESS
+
         self._color_temp = 3000
         self._min_color_temp = 2202
         self._max_color_temp = 4000
@@ -86,8 +98,14 @@ class ikea_bulb_mock(LightEntity):
 
     @property
     def supported_color_modes(self):
+        logger.debug("returning supported colors")
         return self._supported_color_modes
 
+    @property
+    def color_mode(self):
+        logger.debug("Returning color mode")
+        return self._color_mode 
+    
     def update(self):
         logger.debug("mock update for {}...".format(self._name))
         pass

@@ -65,6 +65,7 @@ class ikea_bulb(LightEntity):
         can_receive = self._json_data.capabilities.can_receive
         logger.debug("Got can_receive in state")
         logger.debug(can_receive)
+        self._color_mode = ColorMode.UNKNOWN
         for cap in can_receive:
             if cap == "lightLevel":
                 color_modes.append(ColorMode.BRIGHTNESS)
@@ -74,11 +75,20 @@ class ikea_bulb(LightEntity):
                 color_modes.append(ColorMode.HS)
 
         if len(color_modes) == 0:
-            self._supported_color_modes = ColorMode.UNKNOWN
+            logger.debug("Color modes array is zero, setting to UNKNOWN")
+            self._supported_color_modes = [ColorMode.UNKNOWN]
         else:
             self._supported_color_modes = color_modes
+            if ColorMode.HS in self._supported_color_modes:
+                self._color_mode = ColorMode.HS
+            elif ColorMode.COLOR_TEMP in self._supported_color_modes:
+                self._color_mode = ColorMode.COLOR_TEMP
+            elif ColorMode.BRIGHTNESS in self._supported_color_modes:
+                self._color_mode = ColorMode.BRIGHTNESS
+
         logger.debug("supported color mode set to ")
         logger.debug(self._supported_color_modes)
+        logger.debug(self._color_mode)
 
     @property
     def unique_id(self):
@@ -136,7 +146,7 @@ class ikea_bulb(LightEntity):
 
     @property
     def color_mode(self):
-        return self._supported_color_modes
+        return self._color_mode
     
     def update(self):
         try:
