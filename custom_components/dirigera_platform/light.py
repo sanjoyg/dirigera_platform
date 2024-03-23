@@ -73,7 +73,10 @@ class ikea_bulb(LightEntity):
             elif cap == "colorHue" or cap == "colorSaturation":
                 color_modes.append(ColorMode.HS)
 
-        self._supported_color_modes = color_modes
+        if len(color_modes) == 0:
+            self._supported_color_modes = ColorMode.UNKNOWN
+        else:
+            self._supported_color_modes = color_modes
         logger.debug("supported color mode set to ")
         logger.debug(self._supported_color_modes)
 
@@ -131,6 +134,10 @@ class ikea_bulb(LightEntity):
     def supported_color_modes(self):
         return self._supported_color_modes
 
+    @property
+    def color_mode(self):
+        return self._supported_color_modes
+    
     def update(self):
         try:
             self._json_data = self._hub.get_light_by_id(self._json_data.id)
