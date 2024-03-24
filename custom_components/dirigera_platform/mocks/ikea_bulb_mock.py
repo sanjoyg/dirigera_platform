@@ -31,7 +31,13 @@ class ikea_bulb_mock(LightEntity):
             ColorMode.COLOR_TEMP,
             ColorMode.HS,
         ]
-        
+
+        if len(self._supported_color_modes) > 1:
+            # If there are more color modes which means we have either temperature
+            # or HueSaturation. then lets make sure BRIGHTNESS is not part of it
+            # as per above documentation
+            self._supported_color_modes.remove(ColorMode.BRIGHTNESS)
+            
         if len(self._supported_color_modes) == 0:
             logger.debug("Color modes array is zero, setting to UNKNOWN")
             self._supported_color_modes = [ColorMode.UNKNOWN]

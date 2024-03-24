@@ -65,7 +65,7 @@ class ikea_bulb(LightEntity):
         can_receive = self._json_data.capabilities.can_receive
         logger.debug("Got can_receive in state")
         logger.debug(can_receive)
-        self._color_mode = ColorMode.UNKNOWN
+        self._color_mode = ColorMode.ONOFF
         for cap in can_receive:
             if cap == "lightLevel":
                 color_modes.append(ColorMode.BRIGHTNESS)
@@ -74,9 +74,17 @@ class ikea_bulb(LightEntity):
             elif cap == "colorHue" or cap == "colorSaturation":
                 color_modes.append(ColorMode.HS)
 
+        # Based on documentation here
+        # https://developers.home-assistant.io/docs/core/entity/light#color-modes
+        if len(color_modes) > 1:
+            # If there are more color modes which means we have either temperature
+            # or HueSaturation. then lets make sure BRIGHTNESS is not part of it
+            # as per above documentation
+            color_modes.remove(ColorMode.BRIGHTNESS)
+
         if len(color_modes) == 0:
             logger.debug("Color modes array is zero, setting to UNKNOWN")
-            self._supported_color_modes = [ColorMode.UNKNOWN]
+            self._supported_color_modes = [ColorMode.ONOFF]
         else:
             self._supported_color_modes = color_modes
             if ColorMode.HS in self._supported_color_modes:
@@ -86,8 +94,9 @@ class ikea_bulb(LightEntity):
             elif ColorMode.BRIGHTNESS in self._supported_color_modes:
                 self._color_mode = ColorMode.BRIGHTNESS
 
-        logger.debug("supported color mode set to ")
+        logger.debug("supported color mode set to:")
         logger.debug(self._supported_color_modes)
+        logger.debug("color mode set to:")
         logger.debug(self._color_mode)
 
     @property
