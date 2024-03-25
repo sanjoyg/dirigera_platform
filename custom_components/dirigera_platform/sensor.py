@@ -70,7 +70,11 @@ async def async_setup_entry(
 
     logger.debug("Found {} env devices to setup...".format(len(env_devices)))
     logger.debug("Found {} env entities to setup...".format(len(env_sensors)))
+    logger.debug("Found {} controller devices to setup...".format(len(controller_devices)))
 
+    logger.debug(env_sensors)
+    logger.debug(controller_devices)
+    
     async_add_entities(env_sensors)
     async_add_entities(controller_devices)
 
