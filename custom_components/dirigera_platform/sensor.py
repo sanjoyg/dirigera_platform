@@ -72,9 +72,6 @@ async def async_setup_entry(
     logger.debug("Found {} env entities to setup...".format(len(env_sensors)))
     logger.debug("Found {} controller devices to setup...".format(len(controller_devices)))
 
-    logger.debug(env_sensors)
-    logger.debug(controller_devices)
-    
     async_add_entities(env_sensors)
     async_add_entities(controller_devices)
 
@@ -318,10 +315,14 @@ class ikea_controller(SensorEntity):
     def is_on(self):
         return self._json_data.attributes.is_on
 
-    @property
-    def device_info(self) -> DeviceInfo:
-        return SensorDeviceClass.BATTERY
+    #@property
+    #def device_info(self) -> DeviceInfo:
+    #    return SensorDeviceClass.BATTERY
 
+    @property
+    def icon(self):
+        return "mdi:battery"
+    
     @property
     def native_value(self):
         return self._json_data.attributes.battery_percentage
