@@ -7,9 +7,10 @@ Supports
 * Open/Close Sensors
 * Motion Sensor
 * Environment Sensor
-* Blinds               
+* FYRTUR Blinds               
 * STYRBAR Remotes      
 * AirPurifier
+* STARKVIND AirPurifier
 
 ## Pre-requisite
 1. Identify the IP of the gateway - Usually looking at the client list in your home router interface will give that.
