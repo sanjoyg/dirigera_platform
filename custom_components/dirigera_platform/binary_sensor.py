@@ -89,7 +89,7 @@ class ikea_motion_sensor(BinarySensorEntity):
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
-            name=self._json_data.attributes.custom_name,
+            name=self.name,
             manufacturer=self._json_data.attributes.manufacturer,
             model=self._json_data.attributes.model,
             sw_version=self._json_data.attributes.firmware_version,
@@ -97,6 +97,8 @@ class ikea_motion_sensor(BinarySensorEntity):
 
     @property
     def name(self):
+        if self._json_data.attributes.custom_name is None or len(self._json_data.attributes.custom_name) == 0:
+            return self.unique_id
         return self._json_data.attributes.custom_name
 
     @property
@@ -123,7 +125,7 @@ class ikea_open_close(ikea_motion_sensor):
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
-            name=self._json_data.attributes.custom_name,
+            name=self.name,
             manufacturer=self._json_data.attributes.manufacturer,
             model=self._json_data.attributes.model,
             sw_version=self._json_data.attributes.firmware_version,
@@ -135,6 +137,8 @@ class ikea_open_close(ikea_motion_sensor):
 
     @property
     def name(self):
+        if self._json_data.attributes.custom_name is None or len(self._json_data.attributes.custom_name) == 0:
+            return self.unique_id
         return self._json_data.attributes.custom_name
 
     @property
