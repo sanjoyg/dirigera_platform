@@ -72,10 +72,16 @@ async def async_setup_entry(
 
 
 class ikea_motion_sensor(BinarySensorEntity):
+    
     def __init__(self, hub, json_data):
         logger.debug("ikea_motion_sensor ctor...")
         self._hub = hub
         self._json_data = json_data
+
+        self.user_detected_attr = False 
+        if self._json_data.attributes.model.lower().startswith("vallhorn"):
+            logger.debug("VALLHORN Motion sensor detected will use is_detected attribute..")
+            self.user_detected_attr = True 
 
     @property
     def unique_id(self):
@@ -103,6 +109,8 @@ class ikea_motion_sensor(BinarySensorEntity):
 
     @property
     def is_on(self):
+        if self.user_detected_attr:
+            return self._json_data.attributes.is_detected
         return self._json_data.attributes.is_on
 
     def update(self):

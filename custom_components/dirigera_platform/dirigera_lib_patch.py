@@ -1,9 +1,9 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from dirigera import Hub
 from dirigera.devices.air_purifier import AirPurifier, dict_to_air_purifier
 from dirigera.devices.blinds import Blind, dict_to_blind
-from dirigera.devices.device import Attributes
+from dirigera.devices.motion_sensor import MotionSensorAttributes
 from dirigera.devices.environment_sensor import (
     EnvironmentSensor,
     dict_to_environment_sensor,
@@ -18,9 +18,8 @@ from dirigera.hub.abstract_smart_home_hub import AbstractSmartHomeHub
 # Patch to fix issues with motion sensor
 
 
-class MotionSensorAttributesX(Attributes):
-    battery_percentage: int
-    is_on: bool
+class MotionSensorAttributesX(MotionSensorAttributes):
+    is_detected: Optional[bool]
 
 
 class MotionSensorX(MotionSensor):

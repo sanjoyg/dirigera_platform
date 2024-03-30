@@ -50,8 +50,7 @@ async def async_setup_entry(
     logger.debug("LIGHT Complete async_setup_entry")
 
 class ikea_bulb(LightEntity):
-    _attr_has_entity_name = True
-
+    
     def __init__(self, hub, json_data) -> None:
         logger.debug("ikea_bulb ctor...")
         self._hub = hub

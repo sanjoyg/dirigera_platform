@@ -11,6 +11,7 @@ Supports
 * STYRBAR Remotes      
 * AirPurifier
 * STARKVIND AirPurifier
+* VALLHORN Motion Sensors
 
 ## Pre-requisite
 1. Identify the IP of the gateway - Usually looking at the client list in your home router interface will give that.
