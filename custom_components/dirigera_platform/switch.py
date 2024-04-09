@@ -76,28 +76,28 @@ class ikea_outlet(SwitchEntity):
     def is_on(self):
         return self._json_data.attributes.is_on
 
-    def turn_on(self):
+    async def async_turn_on(self):
         logger.debug("outlet turn_on")
         try:
-            self._json_data.set_on(True)
+            await self.hass.async_add_executor_job(self._json_data.set_on, True)
         except Exception as ex:
             logger.error("error encountered turning on : {}".format(self.name))
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
 
-    def turn_off(self):
+    async def async_turn_off(self):
         logger.debug("outlet turn_off")
         try:
-            self._json_data.set_on(False)
+            await self.hass.async_add_executor_job(self._json_data.set_on, False)
         except Exception as ex:
             logger.error("error encountered turning off : {}".format(self.name))
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
 
-    def update(self):
+    async def async_update(self):
         logger.debug("outlet update...")
         try:
-            self._json_data = self._hub.get_outlet_by_id(self._json_data.id)
+            self._json_data = await self.hass.async_add_executor_job(self._hub.get_outlet_by_id, self._json_data.id)
         except Exception as ex:
             logger.error("error encountered running update on : {}".format(self.name))
             logger.error(ex)

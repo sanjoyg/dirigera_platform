@@ -47,7 +47,7 @@ async def async_setup_entry(
     else:
         hub_air_purifiers = await hass.async_add_executor_job(hub.get_air_purifiers)
         air_purifiers = [
-            ikea_starkvind_air_purifier_device(hub, air_purifier)
+            ikea_starkvind_air_purifier_device(hass, hub, air_purifier)
             for air_purifier in hub_air_purifiers
         ]
 
@@ -78,7 +78,7 @@ async def async_setup_entry(
                 air_purifier_device,
                 "Child Lock",
                 "child_lock",
-                "set_child_lock",
+                "async_set_child_lock",
                 "mdi:account-lock-outline",
             )
         )
@@ -87,7 +87,7 @@ async def async_setup_entry(
                 air_purifier_device,
                 "Status Light",
                 "status_light",
-                "set_status_light",
+                "async_set_status_light",
                 "mdi:lightbulb",
             )
         )
@@ -143,20 +143,21 @@ async def async_setup_entry(
 
 
 class ikea_starkvind_air_purifier_device:
-    def __init__(self, hub, json_data) -> None:
+    def __init__(self, hass, hub, json_data) -> None:
+        self.hass = hass 
         self._json_data = json_data
         self._updated_at = None
         self._hub = hub
         self._updated_at = None
         logger.debug("Air purifer Fan Entity ctor complete...")
 
-    def update(self):
+    async def async_update(self):
         if (
             self._updated_at is None
             or (datetime.datetime.now() - self._updated_at).total_seconds() > 30
         ):
             try:
-                self._json_data = self._hub.get_air_purifier_by_id(self._json_data.id)
+                self._json_data = await self.hass.async_add_executor_job(self._hub.get_air_purifier_by_id, self._json_data.id)
                 self._updated_at = datetime.datetime.now()
             except Exception as ex:
                 logger.error(
@@ -252,27 +253,27 @@ class ikea_starkvind_air_purifier_device:
             return True
         return False
 
-    def set_percentage(self, percentage: int) -> None:
+    async def async_set_percentage(self, percentage: int) -> None:
         # Convert percent to speed
         desired_speed = math.ceil(percentage * 50 / 100)
         logger.debug(
             "set_percentage got : {}, scaled to : {}".format(percentage, desired_speed)
         )
-        self._json_data.set_motor_state(desired_speed)
+        await self.hass.async_add_executor_job(self._json_data.set_motor_state, desired_speed)
 
-    def set_status_light(self, status: bool) -> None:
+    async def async_set_status_light(self, status: bool) -> None:
         logger.debug("set_status_light : {}".format(status))
-        self._json_data.set_status_light(status)
+        await self.hass.async_add_executor_job(self._json_data.set_status_light, status)
 
-    def set_child_lock(self, status: bool) -> None:
+    async def async_set_child_lock(self, status: bool) -> None:
         logger.debug("set_child_lock : {}".format(status))
-        self._json_data.set_child_lock(status)
+        await self.hass.async_add_executor_job(self._json_data.set_child_lock, status)
 
-    def set_fan_mode(self, preset_mode: FanModeEnum) -> None:
+    async def async_set_fan_mode(self, preset_mode: FanModeEnum) -> None:
         logger.debug("set_fan_mode : {}".format(preset_mode.value))
-        self._json_data.set_fan_mode(preset_mode)
+        await self.hass.async_add_executor_job(self._json_data.set_fan_mode, preset_mode)
 
-    def set_preset_mode(self, preset_mode: str):
+    async def async_set_preset_mode(self, preset_mode: str):
         logger.debug("set_preset_mode : {}".format(preset_mode))
         mode_to_set = None
         if preset_mode == "auto":
@@ -289,32 +290,32 @@ class ikea_starkvind_air_purifier_device:
             return
 
         logger.debug("set_preset_mode equated to : {}".format(mode_to_set.value))
-        self.set_fan_mode(mode_to_set)
+        await self.hass.async_add_executor_job(self.set_fan_mode, mode_to_set)
 
-    def turn_on(self, percentage=None, preset_mode=None) -> None:
+    async def async_turn_on(self, percentage=None, preset_mode=None) -> None:
         logger.debug(
             "Airpurifier call to turn_on with percentage: {}, preset_mode: {}".format(
                 percentage, preset_mode
             )
         )
         if preset_mode is not None:
-            self.set_preset_mode(preset_mode)
+            await self.async_set_preset_mode(preset_mode)
         elif percentage is not None:
-            self.set_percentage(percentage)
+            await self.async_set_percentage(percentage)
         else:
             logger.debug(
                 "We were asked to be turned on but percentage and preset were not set, using last known"
             )
             if self.preset_mode is not None:
-                self.set_preset_mode(self.preset_mode)
+                await self.async_set_preset_mode(self.preset_mode)
             elif self.percentage is not None:
-                self.set_percentage(self.percentage)
+                await self.async_set_percentage(self.percentage)
             else:
                 logger.debug("No last known value, setting to auto")
-                self.set_preset_mode("auto")
+                await self.async_set_preset_mode("auto")
 
-    def turn_off(self, **kwargs) -> None:
-        self.set_percentage(0)
+    async def async_turn_off(self, **kwargs) -> None:
+        await self.hass.async_add_executor_job(self.set_percentage, 0)
 
 
 class ikea_starkvind_air_purifier_fan(FanEntity):
@@ -369,21 +370,20 @@ class ikea_starkvind_air_purifier_fan(FanEntity):
     def speed_count(self):
         return self._device.speed_count
 
-    def update(self):
-        self._device.update()
+    async def async_update(self):
+        await self._device.async_update()
 
-    def set_percentage(self, percentage: int) -> None:
-        self._device.set_percentage(percentage)
+    async def async_set_percentage(self, percentage: int) -> None:
+        await self._device.async_set_percentage(percentage)
 
-    def set_preset_mode(self, preset_mode: str):
-        self._device.set_preset_mode(preset_mode)
+    async def async_set_preset_mode(self, preset_mode: str):
+        await self._device.async_set_preset_mode(preset_mode)
 
-    def turn_on(self, percentage=None, preset_mode=None) -> None:
-        self._device.turn_on(percentage, preset_mode)
+    async def async_turn_on(self, percentage=None, preset_mode=None) -> None:
+        await self._device.async_turn_on(percentage, preset_mode)
 
-    def turn_off(self, **kwargs) -> None:
-        self._device.turn_off()
-
+    async def async_turn_off(self, **kwargs) -> None:
+        await self._device.async_turn_off()
 
 class ikea_starkvind_air_purifier_sensor(SensorEntity):
     def __init__(
@@ -402,8 +402,8 @@ class ikea_starkvind_air_purifier_sensor(SensorEntity):
         self._native_unit_of_measurement = native_uom
         self._icon = icon_name
 
-    def update(self):
-        self._device.update()
+    async def async_update(self):
+        await self._device.async_update()
 
     @property
     def icon(self):
@@ -437,6 +437,11 @@ class ikea_starkvind_air_purifier_sensor(SensorEntity):
     def native_value(self):
         return getattr(self._device, self._native_value_prop)
 
+    async def async_turn_off(self):
+        pass 
+
+    async def async_turn_on(self):
+        pass 
 
 class ikea_starkvind_air_purifier_binary_sensor(BinarySensorEntity):
     def __init__(
@@ -453,8 +458,8 @@ class ikea_starkvind_air_purifier_binary_sensor(BinarySensorEntity):
         self._native_value_prop = native_value_prop
         self._icon = icon_name
 
-    def update(self):
-        self._device.update()
+    async def async_update(self):
+        await self._device.async_update()
 
     @property
     def icon(self):
@@ -506,8 +511,8 @@ class ikea_starkvind_air_purifier_switch_sensor(SwitchEntity):
         self._turn_on_off = getattr(self._device, turn_on_off_fx)
         self._icon = icon_name
 
-    def update(self):
-        self._device.update()
+    async def async_update(self):
+        await self._device.async_update()
 
     @property
     def icon(self):
@@ -538,19 +543,19 @@ class ikea_starkvind_air_purifier_switch_sensor(SwitchEntity):
         logger.debug("ikea_starkvind_air_purifier_switch_sensor is_on call..")
         return getattr(self._device, self._is_on_prop)
 
-    def async_handle_turn_on_service(self):
+    async def async_handle_turn_on_service(self):
         logger.debug("{} turn_on".format(self.name))
         try:
-            self._turn_on_off(True)
+            await self._turn_on_off(True)
         except Exception as ex:
             logger.error("error encountered turning on : {}".format(self.name))
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
 
-    def turn_off(self):
+    async def async_turn_off(self):
         logger.debug("{} turn_off".format(self.name))
         try:
-            self._turn_on_off(False)
+            await self._turn_on_off(False)
         except Exception as ex:
             logger.error("error encountered turning off : {}".format(self.name))
             logger.error(ex)

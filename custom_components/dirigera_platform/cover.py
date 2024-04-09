@@ -124,21 +124,21 @@ class IkeaBlinds(CoverEntity):
 
         return False
 
-    def open_cover(self, **kwargs):
-        self._json_data.set_target_level(0)
+    async def async_open_cover(self, **kwargs):
+        await self.hass.async_add_executor_job(self._json_data.set_target_level, 0)
 
-    def close_cover(self, **kwargs):
-        self._json_data.set_target_level(100)
+    async def async_close_cover(self, **kwargs):
+        await self.hass.async_add_executor_job(self._json_data.set_target_level, 100)
 
-    def set_cover_position(self, **kwargs):
+    async def async_set_cover_position(self, **kwargs):
         position = int(kwargs["position"])
         if position >= 0 and position <= 100:
-            self._json_data.set_target_level(100 - position)
+            await self.hass.async_add_executor_job(self._json_data.set_target_level,100 - position)
 
-    def update(self):
+    async def async_update(self):
         logger.debug("cover update...")
         try:
-            self._json_data = self._hub.get_blinds_by_id(self._json_data.id)
+            self._json_data = await self.hass.async_add_executor_job(self._hub.get_blinds_by_id, self._json_data.id)
         except Exception as ex:
             logger.error("error encountered running update on : {}".format(self.name))
             logger.error(ex)

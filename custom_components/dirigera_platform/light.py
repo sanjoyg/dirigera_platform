@@ -44,10 +44,30 @@ async def async_setup_entry(
     else:
         hub_lights = await hass.async_add_executor_job(hub.get_lights)
         lights = [ikea_bulb(hub, light) for light in hub_lights]
-
-    logger.debug("Found {} light entities to setup...".format(len(lights)))
+        logger.debug("Found {} light entities to setup...".format(len(lights)))
+        
     async_add_entities(lights)
     logger.debug("LIGHT Complete async_setup_entry")
+
+class device_set_model:
+    def __init__(self, id, name):
+        self._lights = []
+        self._name = name 
+        self._id = id 
+        
+    @property
+    def id(self):
+        return self._id 
+    
+    @property
+    def name(self):
+        return self._name 
+    
+    def get_lights(self) -> list:
+        return self._lights
+    
+    def add_light(self, bulb):
+        self._lights.append(bulb)
 
 class ikea_bulb(LightEntity):
     
@@ -58,6 +78,7 @@ class ikea_bulb(LightEntity):
         self.set_state()
 
     def set_state(self):
+        
         # Set Color capabilities
         color_modes = []
         can_receive = self._json_data.capabilities.can_receive
@@ -99,6 +120,8 @@ class ikea_bulb(LightEntity):
 
     @property
     def unique_id(self):
+        logger.debug("unique id called...")
+       
         return self._json_data.id
 
     @property
@@ -107,6 +130,8 @@ class ikea_bulb(LightEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
+        logger.debug("device info called...")
+
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
             name=self.name,
@@ -117,6 +142,7 @@ class ikea_bulb(LightEntity):
 
     @property
     def name(self):
+        
         if self._json_data.attributes.custom_name is None or len(self._json_data.attributes.custom_name) == 0:
             return self.unique_id
         return self._json_data.attributes.custom_name
@@ -156,22 +182,23 @@ class ikea_bulb(LightEntity):
     @property
     def color_mode(self):
         return self._color_mode
-    
-    def update(self):
+            
+        
+    async def async_update(self):
         try:
-            self._json_data = self._hub.get_light_by_id(self._json_data.id)
+            self._json_data = await self.hass.async_add_executor_job(self._hub.get_light_by_id, self._json_data.id)
             self.set_state()
         except Exception as ex:
             logger.error("error encountered running update on : {}".format(self.name))
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
-
-    def turn_on(self, **kwargs):
+        
+    async def async_turn_on(self, **kwargs):
         logger.debug("light turn_on...")
         logger.debug(kwargs)
 
         try:
-            self._json_data.set_light(True)
+            await self.hass.async_add_executor_job(self._json_data.set_light,True)
 
             if ATTR_BRIGHTNESS in kwargs:
                 # brightness requested
@@ -181,7 +208,7 @@ class ikea_bulb(LightEntity):
                 logger.debug(
                     "scaled brightness : {}".format(int((brightness / 255) * 100))
                 )
-                self._json_data.set_light_level(int((brightness / 255) * 100))
+                await self.hass.async_add_executor_job(self._json_data.set_light_level,int((brightness / 255) * 100))
 
             if ATTR_COLOR_TEMP_KELVIN in kwargs:
                 # color temp requested
@@ -189,7 +216,7 @@ class ikea_bulb(LightEntity):
                 logger.debug("Request to set color temp...")
                 ct = kwargs[ATTR_COLOR_TEMP_KELVIN]
                 logger.debug("Set CT : {}".format(ct))
-                self._json_data.set_color_temperature(ct)
+                await self.hass.async_add_executor_job(self._json_data.set_color_temperature,ct)
 
             if ATTR_HS_COLOR in kwargs:
                 logger.debug("Request to set color HS")
@@ -197,17 +224,18 @@ class ikea_bulb(LightEntity):
                 self._color_hue = hs_tuple[0]
                 self._color_saturation = hs_tuple[1] / 100
                 # Saturation is 0 - 1 at IKEA
-                self._json_data.set_light_color(self._color_hue, self._color_saturation)
+               
+                await self.hass.async_add_executor_job(self._json_data.set_light_color,self._color_hue, self._color_saturation)
 
         except Exception as ex:
             logger.error("error encountered turning on : {}".format(self.name))
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
 
-    def turn_off(self, **kwargs):
+    async def async_turn_off(self, **kwargs):
         logger.debug("light turn_off...")
         try:
-            self._json_data.set_light(False)
+            await self.hass.async_add_executor_job(self._json_data.set_light,False)
         except Exception as ex:
             logger.error("error encountered turning off : {}".format(self.name))
             logger.error(ex)

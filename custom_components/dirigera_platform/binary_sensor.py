@@ -113,10 +113,10 @@ class ikea_motion_sensor(BinarySensorEntity):
             return self._json_data.attributes.is_detected
         return self._json_data.attributes.is_on
 
-    def update(self):
+    async def async_update(self):
         logger.debug("motion sensor update...")
         try:
-            self._json_data = self._hub.get_motion_sensor_by_id(self._json_data.id)
+            self._json_data = await self.hass.async_add_executor_job(self._hub.get_motion_sensor_by_id, self._json_data.id)
         except Exception as ex:
             logger.error("error encountered running update on : {}".format(self.name))
             logger.error(ex)
@@ -153,10 +153,10 @@ class ikea_open_close(ikea_motion_sensor):
     def is_on(self):
         return self._json_data.attributes.is_open
 
-    def update(self):
+    async def async_update(self):
         logger.debug("open close sensor update...")
         try:
-            self._json_data = self._hub.get_open_close_by_id(self._json_data.id)
+            self._json_data = await self.hass.async_add_executor_job(self._hub.get_open_close_by_id, self._json_data.id)
         except Exception as ex:
             logger.error("error encountered running update on : {}".format(self.name))
             logger.error(ex)
