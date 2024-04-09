@@ -17,7 +17,6 @@ from dirigera.hub.abstract_smart_home_hub import AbstractSmartHomeHub
 
 # Patch to fix issues with motion sensor
 
-
 class MotionSensorAttributesX(MotionSensorAttributes):
     is_detected: Optional[bool]
 

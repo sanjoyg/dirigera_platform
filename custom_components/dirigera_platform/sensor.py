@@ -84,15 +84,13 @@ class ikea_vindstyrka_device:
         self._updated_at = None
         self._hub = hub
 
-    def update(self):
+    async def async_update(self):
         if (
             self._updated_at is None
             or (datetime.datetime.now() - self._updated_at).total_seconds() > 30
         ):
             try:
-                self._json_data = self._hub.get_environment_sensor_by_id(
-                    self._json_data.id
-                )
+                self._json_data = await self.hass.async_add_executor_job(self._hub.get_environment_sensor_by_id, self._json_data.id)
                 self._updated_at = datetime.datetime.now()
             except Exception as ex:
                 logger.error(
@@ -173,8 +171,8 @@ class ikea_env_base_entity(SensorEntity):
     def native_value(self):
         return int
 
-    def update(self):
-        self._ikea_env_device.update()
+    async def async_update(self):
+        await self._ikea_env_device.async_update()
 
 
 class ikea_vindstyrka_temperature(ikea_env_base_entity):
@@ -335,12 +333,10 @@ class ikea_controller(SensorEntity):
     def native_unit_of_measurement(self) -> str:
         return "%"
 
-    def update(self):
+    async def async_update(self):
         logger.debug("controller update...")
         try:
-            self._json_data = self._hub.get_controller_by_name(
-                self._json_data.attributes.custom_name
-            )
+            self._json_data = await self.hass.async_add_executor_job(self._hub.get_controller_by_name, self._json_data.attributes.custom_name)
         except Exception as ex:
             logger.error("error encountered running update on : {}".format(self.name))
             logger.error(ex)
