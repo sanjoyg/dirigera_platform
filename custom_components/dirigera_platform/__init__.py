@@ -123,9 +123,7 @@ async def async_unload_entry(
                 *[
                     hass.config_entries.async_forward_entry_unload(entry, "light"),
                     hass.config_entries.async_forward_entry_unload(entry, "switch"),
-                    hass.config_entries.async_forward_entry_unload(
-                        entry, "binary_sensor"
-                    ),
+                    hass.config_entries.async_forward_entry_unload(entry, "binary_sensor"),
                     hass.config_entries.async_forward_entry_unload(entry, "sensor"),
                     hass.config_entries.async_forward_entry_unload(entry, "cover"),
                     hass.config_entries.async_forward_entry_unload(entry, "fan"),
