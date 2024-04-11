@@ -15,6 +15,7 @@ from .const import DOMAIN
 from .dirigera_lib_patch import HubX
 from .mocks.ikea_motion_sensor_mock import ikea_motion_sensor_mock
 from .mocks.ikea_open_close_mock import ikea_open_close_mock
+from .hub_event_listener import hub_event_listener
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -84,6 +85,10 @@ class ikea_motion_sensor(BinarySensorEntity):
             self.user_detected_attr = True 
 
     @property
+    def should_poll(self) -> bool:
+        return False 
+    
+    @property
     def unique_id(self):
         return self._json_data.id
 
@@ -93,6 +98,9 @@ class ikea_motion_sensor(BinarySensorEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
+        # Register the device for updates
+        hub_event_listener.register(self._json_data.id, self)
+
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
             name=self.name,
@@ -122,7 +130,6 @@ class ikea_motion_sensor(BinarySensorEntity):
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
 
-
 class ikea_open_close(ikea_motion_sensor):
     def __init__(self, hub, json_data):
         logger.debug("ikea_open_close ctor...")
@@ -131,6 +138,9 @@ class ikea_open_close(ikea_motion_sensor):
 
     @property
     def device_info(self) -> DeviceInfo:
+        # Register the device for updates
+        hub_event_listener.register(self._json_data.id, self)
+        
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
             name=self.name,

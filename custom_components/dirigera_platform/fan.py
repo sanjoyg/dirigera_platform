@@ -9,6 +9,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
+from homeassistant.helpers.entity import Entity
 from homeassistant.components.fan import FanEntity, FanEntityFeature
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
@@ -19,6 +20,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from .const import DOMAIN
 from .dirigera_lib_patch import HubX
 from .mocks.ikea_air_purifier_mock import ikea_starkvind_air_purifier_mock_device
+from .hub_event_listener import hub_event_listener
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -141,7 +143,6 @@ async def async_setup_entry(
     async_add_entities(sensor_to_add)
     logger.debug("FAN/AirPurifier Complete async_setup_entry")
 
-
 class ikea_starkvind_air_purifier_device:
     def __init__(self, hass, hub, json_data) -> None:
         self.hass = hass 
@@ -149,6 +150,7 @@ class ikea_starkvind_air_purifier_device:
         self._updated_at = None
         self._hub = hub
         self._updated_at = None
+        self._listeners = []
         logger.debug("Air purifer Fan Entity ctor complete...")
 
     async def async_update(self):
@@ -166,12 +168,23 @@ class ikea_starkvind_air_purifier_device:
                 logger.error(ex)
                 raise HomeAssistantError(ex, DOMAIN, "hub_exception")
 
+    def add_listener(self, entity : Entity) -> None:
+        self._listeners.append(entity)
+
+    # Hack for faster update
+    def async_schedule_update_ha_state(self, force_refresh:bool = False) -> None:
+        for listener in self._listeners:
+            listener.async_schedule_update_ha_state(force_refresh)
+
     @property
     def available(self):
         return self._json_data.is_reachable
 
     @property
     def device_info(self) -> DeviceInfo:
+        # Register the device for updates
+        hub_event_listener.register(self._json_data.id, self)
+        
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
             name=self.name,
@@ -317,11 +330,15 @@ class ikea_starkvind_air_purifier_device:
     async def async_turn_off(self, **kwargs) -> None:
         await self.hass.async_add_executor_job(self.set_percentage, 0)
 
-
 class ikea_starkvind_air_purifier_fan(FanEntity):
     def __init__(self, device: ikea_starkvind_air_purifier_device) -> None:
         self._device = device
+        device.add_listener(self)
 
+    @property
+    def should_poll(self) -> bool:
+        return False 
+    
     @property
     def available(self):
         return self._device.available
@@ -401,7 +418,12 @@ class ikea_starkvind_air_purifier_sensor(SensorEntity):
         self._device_class = device_class
         self._native_unit_of_measurement = native_uom
         self._icon = icon_name
+        device.add_listener(self)
 
+    @property
+    def should_poll(self) -> bool:
+        return False 
+    
     async def async_update(self):
         await self._device.async_update()
 
@@ -457,7 +479,12 @@ class ikea_starkvind_air_purifier_binary_sensor(BinarySensorEntity):
         self._device_class = device_class
         self._native_value_prop = native_value_prop
         self._icon = icon_name
+        device.add_listener(self)
 
+    @property
+    def should_poll(self) -> bool:
+        return False 
+    
     async def async_update(self):
         await self._device.async_update()
 
@@ -495,7 +522,6 @@ class ikea_starkvind_air_purifier_binary_sensor(BinarySensorEntity):
     def async_handle_turn_on_service(self):
         pass
 
-
 class ikea_starkvind_air_purifier_switch_sensor(SwitchEntity):
     def __init__(
         self,
@@ -510,7 +536,12 @@ class ikea_starkvind_air_purifier_switch_sensor(SwitchEntity):
         self._is_on_prop = is_on_prop
         self._turn_on_off = getattr(self._device, turn_on_off_fx)
         self._icon = icon_name
+        device.add_listener(self)
 
+    @property
+    def should_poll(self) -> bool:
+        return False 
+    
     async def async_update(self):
         await self._device.async_update()
 

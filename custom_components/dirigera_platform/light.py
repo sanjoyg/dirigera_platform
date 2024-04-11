@@ -16,6 +16,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from .const import DOMAIN
 from .dirigera_lib_patch import HubX
 from .mocks.ikea_bulb_mock import ikea_bulb_mock
+from .hub_event_listener import hub_event_listener
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -100,6 +101,10 @@ class ikea_bulb(LightEntity):
         self._json_data = json_data
         self.set_state()
 
+    @property
+    def should_poll(self) -> bool:
+        return False 
+    
     def set_state(self):
         # Set Color capabilities
         color_modes = []
@@ -152,6 +157,9 @@ class ikea_bulb(LightEntity):
     @property
     def device_info(self) -> DeviceInfo:
         logger.debug("device info called...")
+
+        # Register the device for updates
+        hub_event_listener.register(self._json_data.id, self)
 
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
@@ -285,6 +293,10 @@ class ikea_bulb_device_set(LightEntity):
         self._patch_url = f"/devices/set/{device_set.id}?deviceType=light"    
         
     @property
+    def should_poll(self) -> bool:
+        return False 
+    
+    @property
     def unique_id(self):
         return self._device_set.id
 
@@ -298,6 +310,14 @@ class ikea_bulb_device_set(LightEntity):
     @property
     def device_info(self) -> DeviceInfo:
         logger.debug("device info device_set called...")
+
+        # Register the device for updates
+        hub_event_listener.register(self.unique_id, self)
+
+        # Also register the associated bulbs id with self, 
+        # cause they are never visible to HASS
+        for light in self._device_set.get_lights():
+            hub_event_listener.register(light.unique_id, [self, light])
 
         return DeviceInfo(
             identifiers={("dirigera_platform", self._device_set.id)},
@@ -323,7 +343,7 @@ class ikea_bulb_device_set(LightEntity):
         if len(self._device_set.get_lights()) > 0:
             return getattr(self._device_set.get_lights()[0], attr_name)
         logger.error("error, device set requested for {attr_name} while no lights are associated with it")
-        pass 
+     
 
     @property
     def brightness(self):
@@ -358,7 +378,6 @@ class ikea_bulb_device_set(LightEntity):
         return self.get_attribute_value("color_mode")
             
     async def async_update(self):
-        pass
         try:
             for light in self._device_set.get_lights():
                 await self.hass.async_add_executor_job(light.sync_update)

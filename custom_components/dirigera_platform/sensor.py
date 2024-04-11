@@ -2,6 +2,7 @@ import datetime
 from enum import Enum
 import logging
 
+from homeassistant.helpers.entity import Entity
 from homeassistant import config_entries, core
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
@@ -10,6 +11,7 @@ from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
 from .dirigera_lib_patch import HubX
+from .hub_event_listener import hub_event_listener
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -77,12 +79,20 @@ async def async_setup_entry(
 
     logger.debug("EnvSensor & Controllers Complete async_setup_entry")
 
-
 class ikea_vindstyrka_device:
     def __init__(self, hub, json_data) -> None:
         self._json_data = json_data
         self._updated_at = None
         self._hub = hub
+        self._listeners = []
+
+    def add_listener(self, entity : Entity) -> None:
+        self._listeners.append(entity)
+
+    # Hack for faster update
+    def async_schedule_update_ha_state(self, force_refresh:bool = False) ->None :
+        for listener in self._listeners:
+            listener.async_schedule_update_ha_state(force_refresh)
 
     async def async_update(self):
         if (
@@ -123,6 +133,9 @@ class ikea_vindstyrka_device:
 
     @property
     def device_info(self) -> DeviceInfo:
+        # Register the device for updates
+        hub_event_listener.register(self._json_data.id, self)
+
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
             name=self.name,
@@ -141,7 +154,6 @@ class ikea_vindstyrka_device:
     def unique_id(self):
         return self._json_data.id
 
-
 class ikea_env_base_entity(SensorEntity):
     def __init__(
         self, ikea_env_device: ikea_vindstyrka_device, id_suffix: str, name_suffix: str
@@ -150,7 +162,12 @@ class ikea_env_base_entity(SensorEntity):
         self._ikea_env_device = ikea_env_device
         self._unique_id = self._ikea_env_device.unique_id + id_suffix
         self._name = self._ikea_env_device.name + " " + name_suffix
+        ikea_env_device.add_listener(self)
 
+    @property
+    def should_poll(self) -> bool:
+        return False 
+    
     @property
     def available(self):
         return self._ikea_env_device.available
@@ -174,7 +191,6 @@ class ikea_env_base_entity(SensorEntity):
     async def async_update(self):
         await self._ikea_env_device.async_update()
 
-
 class ikea_vindstyrka_temperature(ikea_env_base_entity):
     def __init__(self, ikea_env_device: ikea_vindstyrka_device) -> None:
         super().__init__(ikea_env_device, "TEMP", "Temperature")
@@ -196,7 +212,6 @@ class ikea_vindstyrka_temperature(ikea_env_base_entity):
     def state_class(self) -> str:
         return "measurement"
 
-
 class ikea_vindstyrka_humidity(ikea_env_base_entity):
     def __init__(self, ikea_env_device: ikea_vindstyrka_device) -> None:
         logger.debug("ikea_vindstyrka_humidity ctor...")
@@ -214,12 +229,10 @@ class ikea_vindstyrka_humidity(ikea_env_base_entity):
     def native_unit_of_measurement(self) -> str:
         return "%"
 
-
 class WhichPM25(Enum):
     CURRENT = 0
     MIN = 1
     MAX = 2
-
 
 class ikea_vindstyrka_pm25(ikea_env_base_entity):
     def __init__(
@@ -260,7 +273,6 @@ class ikea_vindstyrka_pm25(ikea_env_base_entity):
     def native_unit_of_measurement(self) -> str:
         return "µg/m³"
 
-
 class ikea_vindstyrka_voc_index(ikea_env_base_entity):
     def __init__(self, ikea_env_device: ikea_vindstyrka_device) -> None:
         logger.debug("ikea_vindstyrka_voc_index ctor...")
@@ -278,7 +290,6 @@ class ikea_vindstyrka_voc_index(ikea_env_base_entity):
     def native_unit_of_measurement(self) -> str:
         return "µg/m³"
 
-
 class ikea_controller(SensorEntity):
     def __init__(self, hub, json_data):
         logger.debug("ikea_controller ctor...")
@@ -286,7 +297,14 @@ class ikea_controller(SensorEntity):
         self._json_data = json_data
 
     @property
+    def should_poll(self) -> bool:
+        return False 
+    
+    @property
     def device_info(self) -> DeviceInfo:
+        # Register the device for updates
+        hub_event_listener.register(self._json_data.id, self)
+        
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
             name=self.name,
@@ -341,3 +359,9 @@ class ikea_controller(SensorEntity):
             logger.error("error encountered running update on : {}".format(self.name))
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
+
+# SOMRIG Controllers act differently in the gateway Hub
+# While its one device but two id's are sent back each
+# representing the two buttons on the controler. The id is
+# all same except _1 and _2 suffix. The serial number on the
+# controllers is same.

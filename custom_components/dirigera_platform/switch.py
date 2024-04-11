@@ -11,6 +11,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from .const import DOMAIN
 from .dirigera_lib_patch import HubX
 from .mocks.ikea_outlet_mock import ikea_outlet_mock
+from .hub_event_listener import hub_event_listener
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -41,13 +42,16 @@ async def async_setup_entry(
     async_add_entities(outlets)
     logger.debug("SWITCH Complete async_setup_entry")
 
-
 class ikea_outlet(SwitchEntity):
     def __init__(self, hub, json_data):
         logger.debug("ikea_outlet ctor...")
         self._hub = hub
         self._json_data = json_data
 
+    @property
+    def should_poll(self) -> bool:
+        return False 
+    
     @property
     def unique_id(self):
         return self._json_data.id
@@ -58,6 +62,9 @@ class ikea_outlet(SwitchEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
+        # Register the device for updates
+        hub_event_listener.register(self._json_data.id, self)
+
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
             name=self.name,

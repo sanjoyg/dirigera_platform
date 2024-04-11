@@ -16,6 +16,8 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
+from .hub_event_listener import hub_event_listener
+from .dirigera_lib_patch import HubX
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -27,6 +29,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     }
 )
 
+hub_events = None 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     logger.debug("Starting async_setup...")
@@ -61,6 +64,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 async def async_setup_entry(
     hass: core.HomeAssistant, entry: config_entries.ConfigEntry
 ) -> bool:
+    global hub_events
     """Set up platform from a ConfigEntry."""
     logger.debug("Staring async_setup_entry in init...")
     logger.debug(dict(entry.data))
@@ -98,6 +102,11 @@ async def async_setup_entry(
     )
     hass.async_create_task(hass.config_entries.async_forward_entry_setup(entry, "fan"))
 
+    # Now lets start the event listender too
+    hub = HubX(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
+    hub_events = hub_event_listener(hub)
+    hub_events.start()
+
     logger.debug("Complete async_setup_entry...")
 
     return True
@@ -114,7 +123,14 @@ async def options_update_listener(
 async def async_unload_entry(
     hass: core.HomeAssistant, entry: config_entries.ConfigEntry
 ) -> bool:
+    global hub_events
+    # Called during re-load and delete
     logger.debug("Starting async_unload_entry")
+
+    #Stop the listener
+    if hub_events is not None:
+        hub_events.stop()
+        hub_events = None 
 
     """Unload a config entry."""
     unload_ok = all(
@@ -131,7 +147,7 @@ async def async_unload_entry(
             )
         ]
     )
-    # Remove options_update_listener.
+    
     hass.data[DOMAIN][entry.entry_id]["unsub_options_update_listener"]()
     hass.data[DOMAIN].pop(entry.entry_id)
     logger.debug("Successfully popped entry")
@@ -145,6 +161,7 @@ async def async_remove_config_entry_device(
     config_entry: config_entries.ConfigEntry,
     device_entry: config_entries.DeviceEntry,
 ) -> bool:
+
     logger.info("Got request to remove device")
     logger.info(config_entry)
     logger.info(device_entry)
