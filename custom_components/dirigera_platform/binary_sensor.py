@@ -67,7 +67,6 @@ async def async_setup_entry(
 
     logger.debug("Binary Sensor Complete async_setup_entry")
 
-
 class ikea_motion_sensor(BinarySensorEntity):
     
     def __init__(self, hub, json_data):

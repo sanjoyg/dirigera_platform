@@ -43,7 +43,6 @@ async def async_setup_entry(
     async_add_entities(blinds)
     logger.debug("BLINDS Complete async_setup_entry")
 
-
 class IkeaBlinds(CoverEntity):
     def __init__(self, hub, json_data):
         logger.debug("IkeaBlinds ctor...")

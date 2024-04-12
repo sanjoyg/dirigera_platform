@@ -52,7 +52,7 @@ async def async_setup_entry(
     else:
         hub_devices = await hass.async_add_executor_job(hub.get_environment_sensors)
         env_devices = [
-            ikea_vindstyrka_device(hub, env_device) for env_device in hub_devices
+            ikea_vindstyrka_device(hass, hub, env_device) for env_device in hub_devices
         ]
 
         hub_controllers = await hass.async_add_executor_job(hub.get_controllers)
@@ -81,11 +81,15 @@ async def async_setup_entry(
     logger.debug("EnvSensor & Controllers Complete async_setup_entry")
 
 class ikea_vindstyrka_device:
-    def __init__(self, hub, json_data) -> None:
+    def __init__(self, hass, hub, json_data) -> None:
+        self._hass = hass 
         self._json_data = json_data
         self._updated_at = None
         self._hub = hub
         self._listeners = []
+
+        # Register the device for updates
+        hub_event_listener.register(self._json_data.id, self)
 
     def add_listener(self, entity : Entity) -> None:
         self._listeners.append(entity)
@@ -101,7 +105,7 @@ class ikea_vindstyrka_device:
             or (datetime.datetime.now() - self._updated_at).total_seconds() > 30
         ):
             try:
-                self._json_data = await self.hass.async_add_executor_job(self._hub.get_environment_sensor_by_id, self._json_data.id)
+                self._json_data = await self._hass.async_add_executor_job(self._hub.get_environment_sensor_by_id, self._json_data.id)
                 self._updated_at = datetime.datetime.now()
             except Exception as ex:
                 logger.error(
@@ -134,8 +138,6 @@ class ikea_vindstyrka_device:
 
     @property
     def device_info(self) -> DeviceInfo:
-        # Register the device for updates
-        hub_event_listener.register(self._json_data.id, self)
 
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
@@ -292,7 +294,7 @@ class ikea_vindstyrka_voc_index(ikea_env_base_entity):
         return "µg/m³"
 
 class ikea_controller(SensorEntity):
-    def __init__(self, hub, json_data):
+    def __init__(self,hub, json_data):
         logger.debug("ikea_controller ctor...")
         self._hub = hub
         self._json_data = json_data

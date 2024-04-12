@@ -13,7 +13,11 @@ logger = logging.getLogger("custom_components.dirigera_platform")
 
 ignored_attributes = { 
         "light" : ["colorMode"], 
-        "motionSensor" : ["sensor_config","circadian_presets"]
+        "motionSensor" : ["sensor_config","circadian_presets"],
+        "outlet" : [],
+        "shortcutController" : [],
+        "environmentSensor" : [],
+        "lightController" : [],
     }
 
 def to_snake_case(name:str) -> str:
@@ -41,17 +45,17 @@ class hub_event_listener(threading.Thread):
             logger.debug(f"rcvd message : {ws_msg}")
             msg = json.loads(ws_msg)
             if "type" not in msg or msg['type'] != "deviceStateChanged":
-                logger.error(f"discarding message: {msg}")
+                logger.info(f"discarding message: {msg}")
                 return 
 
             if "data" not in msg or "id" not in msg['data']:
-                logger.warn(f"discarding message as  key 'data' or 'data/id' not found: {msg}")
+                logger.info(f"discarding message as  key 'data' or 'data/id' not found: {msg}")
                 return  
             
             info = msg['data'] 
             id = info['id']
             if id not in hub_event_listener.device_registry:
-                logger.warn(f"discarding message as device for id: {id} not found for msg: {msg}")
+                logger.info(f"discarding message as device for id: {id} not found for msg: {msg}")
                 return 
             registry_value = hub_event_listener.device_registry[id]
             
@@ -82,10 +86,12 @@ class hub_event_listener(threading.Thread):
                 return 
 
             logger.debug(f"device type of message {device_type}")
-            to_ignore_list = []
-            if device_type in ignored_attributes:
-                to_ignore_list = ignored_attributes[device_type]
-
+            if device_type not in ignored_attributes:
+                # To avoid issues been reported. If we dont have it in our list
+                # then best to not process this event
+                return 
+            to_ignore_list = ignored_attributes[device_type]
+            
             if "attributes" in info:
                 attributes = info["attributes"]
                 for key in attributes:

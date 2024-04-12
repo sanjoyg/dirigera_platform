@@ -287,11 +287,7 @@ class ikea_bulb_device_set(LightEntity):
         self._hub = hub
         self._device_set = device_set
         self._patch_url = f"/devices/set/{device_set.id}?deviceType=light"    
-        
-    @property
-    def should_poll(self) -> bool:
-        return False 
-    
+         
     @property
     def unique_id(self):
         return self._device_set.id

@@ -4,6 +4,8 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from dirigera import Hub 
+
 import voluptuous as vol
 
 from homeassistant import config_entries, core
@@ -17,7 +19,6 @@ from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
 from .hub_event_listener import hub_event_listener
-from .dirigera_lib_patch import HubX
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -102,9 +103,11 @@ async def async_setup_entry(
     hass.async_create_task(hass.config_entries.async_forward_entry_setup(entry, "fan"))
 
     # Now lets start the event listender too
-    hub = HubX(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
-    hub_events = hub_event_listener(hub)
-    hub_events.start()
+    hub = Hub(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
+    
+    if hass_data[CONF_IP_ADDRESS] != "mock":
+        hub_events = hub_event_listener(hub)
+        hub_events.start()
 
     logger.debug("Complete async_setup_entry...")
 

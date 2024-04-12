@@ -145,12 +145,16 @@ async def async_setup_entry(
 
 class ikea_starkvind_air_purifier_device:
     def __init__(self, hass, hub, json_data) -> None:
-        self.hass = hass 
+        self._hass = hass 
         self._json_data = json_data
         self._updated_at = None
         self._hub = hub
         self._updated_at = None
         self._listeners = []
+
+        # Register the device for updates
+        hub_event_listener.register(self._json_data.id, self)
+        
         logger.debug("Air purifer Fan Entity ctor complete...")
 
     async def async_update(self):
@@ -159,7 +163,7 @@ class ikea_starkvind_air_purifier_device:
             or (datetime.datetime.now() - self._updated_at).total_seconds() > 30
         ):
             try:
-                self._json_data = await self.hass.async_add_executor_job(self._hub.get_air_purifier_by_id, self._json_data.id)
+                self._json_data = await self._hass.async_add_executor_job(self._hub.get_air_purifier_by_id, self._json_data.id)
                 self._updated_at = datetime.datetime.now()
             except Exception as ex:
                 logger.error(
@@ -182,8 +186,6 @@ class ikea_starkvind_air_purifier_device:
 
     @property
     def device_info(self) -> DeviceInfo:
-        # Register the device for updates
-        hub_event_listener.register(self._json_data.id, self)
         
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
@@ -272,19 +274,19 @@ class ikea_starkvind_air_purifier_device:
         logger.debug(
             "set_percentage got : {}, scaled to : {}".format(percentage, desired_speed)
         )
-        await self.hass.async_add_executor_job(self._json_data.set_motor_state, desired_speed)
+        await self._hass.async_add_executor_job(self._json_data.set_motor_state, desired_speed)
 
     async def async_set_status_light(self, status: bool) -> None:
         logger.debug("set_status_light : {}".format(status))
-        await self.hass.async_add_executor_job(self._json_data.set_status_light, status)
+        await self._hass.async_add_executor_job(self._json_data.set_status_light, status)
 
     async def async_set_child_lock(self, status: bool) -> None:
         logger.debug("set_child_lock : {}".format(status))
-        await self.hass.async_add_executor_job(self._json_data.set_child_lock, status)
+        await self._hass.async_add_executor_job(self._json_data.set_child_lock, status)
 
     async def async_set_fan_mode(self, preset_mode: FanModeEnum) -> None:
         logger.debug("set_fan_mode : {}".format(preset_mode.value))
-        await self.hass.async_add_executor_job(self._json_data.set_fan_mode, preset_mode)
+        await self._hass.async_add_executor_job(self._json_data.set_fan_mode, preset_mode)
 
     async def async_set_preset_mode(self, preset_mode: str):
         logger.debug("set_preset_mode : {}".format(preset_mode))
@@ -303,7 +305,7 @@ class ikea_starkvind_air_purifier_device:
             return
 
         logger.debug("set_preset_mode equated to : {}".format(mode_to_set.value))
-        await self.hass.async_add_executor_job(self.set_fan_mode, mode_to_set)
+        await self._hass.async_add_executor_job(self.set_fan_mode, mode_to_set)
 
     async def async_turn_on(self, percentage=None, preset_mode=None) -> None:
         logger.debug(
@@ -328,7 +330,7 @@ class ikea_starkvind_air_purifier_device:
                 await self.async_set_preset_mode("auto")
 
     async def async_turn_off(self, **kwargs) -> None:
-        await self.hass.async_add_executor_job(self.set_percentage, 0)
+        await self._hass.async_add_executor_job(self.set_percentage, 0)
 
 class ikea_starkvind_air_purifier_fan(FanEntity):
     def __init__(self, device: ikea_starkvind_air_purifier_device) -> None:
