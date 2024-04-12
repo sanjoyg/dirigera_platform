@@ -4,10 +4,17 @@ import time
 from typing import Any 
 import json
 import re 
+from dirigera import Hub 
+
 import websocket
 import ssl
 
 logger = logging.getLogger("custom_components.dirigera_platform")
+
+ignored_attributes = { 
+        "light" : ["colorMode"], 
+        "motionSensor" : ["sensor_config","circadian_presets"]
+    }
 
 def to_snake_case(name:str) -> str:
     return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
@@ -21,14 +28,12 @@ class hub_event_listener(threading.Thread):
             return 
         hub_event_listener.device_registry[id] = device 
 
-    def __init__(self, hub):
+    def __init__(self, hub : Hub):
         super().__init__()
-        self._hub = hub
-        self._listening = False
+        self._hub : Hub = hub
         self._request_to_stop = False 
-        self._wsapp = None 
 
-    def on_error(ws:Any, ws_msg:str):
+    def on_error(self, ws:Any, ws_msg:str):
         logger.debug(f"on_error hub event listener {ws_msg}")
     
     def on_message(self, ws:Any, ws_msg:str):
@@ -68,9 +73,17 @@ class hub_event_listener(threading.Thread):
                     logger.error(f"Failed to setattr is_reachable on device: {id} for msg: {msg}")
                     logger.error(ex)
             
+            device_type = info["type"]
+            to_ignore_list = []
+            if device_type in ignored_attributes:
+                to_ignore_list = ignored_attributes[device_type]
+
             if "attributes" in info:
                 attributes = info["attributes"]
                 for key in attributes:
+                    if key in to_ignore_list:
+                        logger.debug(f"attribute {key} in ignore list of device type {device_type}, ignoring update...")
+                        continue
                     try:
                         key_attr = to_snake_case(key)
                         logger.debug(f"setting {key_attr}  to {attributes[key]}")
@@ -91,16 +104,13 @@ class hub_event_listener(threading.Thread):
     def create_listener(self):
         try:
             logger.info("Starting dirigera hub event listener")
-            self._listening = True 
             self._wsapp = websocket.WebSocketApp(
                 self._hub.websocket_base_url,
                 header={"Authorization": f"Bearer {self._hub.token}"},
                 on_message=self.on_message)
             self._wsapp.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
             #self._hub.create_event_listener(on_message=self.on_message, on_error=self.on_error)
-            self._listening = True 
         except Exception as ex:
-            self._listening = False
             logger.error("Error creating event listener...")
             logger.error(ex)
 
@@ -109,23 +119,21 @@ class hub_event_listener(threading.Thread):
 
         self._request_to_stop = True
         try:
+            #self._hub.stop_event_listener()
             if self._wsapp is not None:
                 self._wsapp.close()
         except:
             pass 
-        #self.stop_event_listener()
         self.join()
         hub_event_listener.device_registry.clear()
         logger.info("Listener stopped..")
 
     def run(self):
         while True:
-            if not self._listening:
-                # Blocking call
-                self.create_listener()
-                logger.debug("Listener thread complete...")
-                if self._request_to_stop:
-                    break
-                if not self._listening:
-                    logger.warn("Failed to create listener will sleep 10 seconds before retrying")
-                    time.sleep(10)
+            # Blocking call
+            self.create_listener()
+            logger.debug("Listener thread complete...")
+            if self._request_to_stop:
+                break
+            logger.warn("Failed to create listener or listener exited, will sleep 10 seconds before retrying")
+            time.sleep(10)

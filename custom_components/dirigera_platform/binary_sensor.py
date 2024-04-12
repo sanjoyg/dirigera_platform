@@ -1,7 +1,5 @@
 import logging
-
-import dirigera
-
+from dirigera import Hub
 from homeassistant import config_entries, core
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -12,13 +10,11 @@ from homeassistant.core import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
-from .dirigera_lib_patch import HubX
 from .mocks.ikea_motion_sensor_mock import ikea_motion_sensor_mock
 from .mocks.ikea_open_close_mock import ikea_open_close_mock
 from .hub_event_listener import hub_event_listener
 
 logger = logging.getLogger("custom_components.dirigera_platform")
-
 
 async def async_setup_entry(
     hass: core.HomeAssistant,
@@ -31,7 +27,7 @@ async def async_setup_entry(
     logger.debug(config)
 
     # hub = dirigera.Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
-    hub = HubX(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
+    hub = Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
 
     lights = []
 
@@ -79,11 +75,6 @@ class ikea_motion_sensor(BinarySensorEntity):
         self._hub = hub
         self._json_data = json_data
 
-        self.user_detected_attr = False 
-        if self._json_data.attributes.model.lower().startswith("vallhorn"):
-            logger.debug("VALLHORN Motion sensor detected will use is_detected attribute..")
-            self.user_detected_attr = True 
-
     @property
     def should_poll(self) -> bool:
         return False 
@@ -117,9 +108,7 @@ class ikea_motion_sensor(BinarySensorEntity):
 
     @property
     def is_on(self):
-        if self.user_detected_attr:
-            return self._json_data.attributes.is_detected
-        return self._json_data.attributes.is_on
+        return self._json_data.attributes.is_on or self._json_data.attributes.is_detected
 
     async def async_update(self):
         logger.debug("motion sensor update...")

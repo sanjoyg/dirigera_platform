@@ -2,6 +2,7 @@ import datetime
 import logging
 import math
 
+from dirigera import Hub
 from dirigera.devices.air_purifier import FanModeEnum
 
 from homeassistant import config_entries, core
@@ -18,7 +19,6 @@ from homeassistant.core import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
-from .dirigera_lib_patch import HubX
 from .mocks.ikea_air_purifier_mock import ikea_starkvind_air_purifier_mock_device
 from .hub_event_listener import hub_event_listener
 
@@ -35,7 +35,7 @@ async def async_setup_entry(
     config = hass.data[DOMAIN][config_entry.entry_id]
     logger.debug(config)
 
-    hub = HubX(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
+    hub = Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
 
     air_purifiers = []
 

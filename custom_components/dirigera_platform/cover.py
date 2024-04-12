@@ -1,5 +1,5 @@
 import logging
-
+from dirigera import Hub
 from homeassistant import config_entries, core
 from homeassistant.components.cover import (
     CoverDeviceClass,
@@ -11,7 +11,6 @@ from homeassistant.core import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
-from .dirigera_lib_patch import HubX
 from .mocks.ikea_blinds_mock import ikea_blinds_mock
 from .hub_event_listener import hub_event_listener
 
@@ -27,7 +26,7 @@ async def async_setup_entry(
     """Setup sensors from a config entry created in the integrations UI."""
     config = hass.data[DOMAIN][config_entry.entry_id]
     # hub = dirigera.Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
-    hub = HubX(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
+    hub = Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
 
     blinds = []
 

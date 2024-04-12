@@ -76,7 +76,6 @@ async def async_setup_entry(
     logger.debug(hass_data)
 
     ip = hass_data[CONF_IP_ADDRESS]
-
     # Registers update listener to update config entry when options are updated.
     unsub_options_update_listener = entry.add_update_listener(options_update_listener)
 

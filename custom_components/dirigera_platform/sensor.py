@@ -2,6 +2,8 @@ import datetime
 from enum import Enum
 import logging
 
+from dirigera import Hub
+
 from homeassistant.helpers.entity import Entity
 from homeassistant import config_entries, core
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
@@ -10,7 +12,6 @@ from homeassistant.core import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
-from .dirigera_lib_patch import HubX
 from .hub_event_listener import hub_event_listener
 
 logger = logging.getLogger("custom_components.dirigera_platform")
@@ -26,7 +27,7 @@ async def async_setup_entry(
     config = hass.data[DOMAIN][config_entry.entry_id]
     logger.debug(config)
 
-    hub = HubX(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
+    hub = Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
 
     env_devices = []
     controller_devices = []

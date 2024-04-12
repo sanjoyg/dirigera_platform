@@ -1,6 +1,7 @@
 import logging
 import dirigera
 
+from dirigera import Hub
 from homeassistant import config_entries, core
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -14,7 +15,6 @@ from homeassistant.core import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
-from .dirigera_lib_patch import HubX
 from .mocks.ikea_bulb_mock import ikea_bulb_mock
 from .hub_event_listener import hub_event_listener
 
@@ -32,7 +32,7 @@ async def async_setup_entry(
     logger.debug(config)
 
     # hub = dirigera.Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
-    hub = HubX(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
+    hub = Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
 
     lights = []
 
