@@ -101,10 +101,6 @@ class ikea_bulb(LightEntity):
         self._json_data = json_data
         self.set_state()
 
-    @property
-    def should_poll(self) -> bool:
-        return False 
-    
     def set_state(self):
         # Set Color capabilities
         color_modes = []

@@ -64,7 +64,6 @@ class hub_event_listener(threading.Thread):
             else:
                 entity = registry_value
              
-            #device = hub_event_listener.device_registry[id]
             if "isReachable" in info:
                 try:
                     logger.debug(f"Setting {id} reachable as {info['isReachable']}")
@@ -73,7 +72,16 @@ class hub_event_listener(threading.Thread):
                     logger.error(f"Failed to setattr is_reachable on device: {id} for msg: {msg}")
                     logger.error(ex)
             
-            device_type = info["type"]
+            device_type = None 
+            if "type" in info:
+                device_type = info["type"]
+            elif "deviceType" in info:
+                device_type = info["deviceType"]
+            else:
+                logger.warn("expected type or deviceType in JSON, none found, ignoring...")
+                return 
+
+            logger.debug(f"device type of message {device_type}")
             to_ignore_list = []
             if device_type in ignored_attributes:
                 to_ignore_list = ignored_attributes[device_type]
