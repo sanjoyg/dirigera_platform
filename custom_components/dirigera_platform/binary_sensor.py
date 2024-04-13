@@ -103,7 +103,8 @@ class ikea_motion_sensor(BinarySensorEntity):
 
     @property
     def is_on(self):
-        return self._json_data.attributes.is_on or self._json_data.attributes.is_detected
+        # Note: the `is_detected` attribute is not present for Trådfri Motion Sensor E1745, only in the webhook events
+        return self._json_data.attributes.is_on or getattr(self._json_data.attributes, 'is_detected', False)
 
     async def async_update(self):
         logger.debug("motion sensor update...")
