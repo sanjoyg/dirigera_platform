@@ -335,11 +335,7 @@ class ikea_starkvind_air_purifier_device:
 class ikea_starkvind_air_purifier_fan(FanEntity):
     def __init__(self, device: ikea_starkvind_air_purifier_device) -> None:
         self._device = device
-        device.add_listener(self)
-
-    @property
-    def should_poll(self) -> bool:
-        return False 
+        device.add_listener(self)   
     
     @property
     def available(self):
@@ -422,10 +418,7 @@ class ikea_starkvind_air_purifier_sensor(SensorEntity):
         self._icon = icon_name
         device.add_listener(self)
 
-    @property
-    def should_poll(self) -> bool:
-        return False 
-    
+
     async def async_update(self):
         await self._device.async_update()
 
@@ -482,10 +475,7 @@ class ikea_starkvind_air_purifier_binary_sensor(BinarySensorEntity):
         self._native_value_prop = native_value_prop
         self._icon = icon_name
         device.add_listener(self)
-
-    @property
-    def should_poll(self) -> bool:
-        return False 
+    
     
     async def async_update(self):
         await self._device.async_update()
@@ -540,10 +530,6 @@ class ikea_starkvind_air_purifier_switch_sensor(SwitchEntity):
         self._icon = icon_name
         device.add_listener(self)
 
-    @property
-    def should_poll(self) -> bool:
-        return False 
-    
     async def async_update(self):
         await self._device.async_update()
 

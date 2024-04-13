@@ -100,11 +100,10 @@ class ikea_vindstyrka_device:
             listener.async_schedule_update_ha_state(force_refresh)
 
     async def async_update(self):
-        if (
-            self._updated_at is None
-            or (datetime.datetime.now() - self._updated_at).total_seconds() > 30
-        ):
+        
+        if self._updated_at is None or (datetime.datetime.now() - self._updated_at).total_seconds() > 30:
             try:
+                logger.debug("env sensor update called...")
                 self._json_data = await self._hass.async_add_executor_job(self._hub.get_environment_sensor_by_id, self._json_data.id)
                 self._updated_at = datetime.datetime.now()
             except Exception as ex:
@@ -167,10 +166,6 @@ class ikea_env_base_entity(SensorEntity):
         self._name = self._ikea_env_device.name + " " + name_suffix
         ikea_env_device.add_listener(self)
 
-    @property
-    def should_poll(self) -> bool:
-        return False 
-    
     @property
     def available(self):
         return self._ikea_env_device.available
@@ -299,10 +294,6 @@ class ikea_controller(SensorEntity):
         self._hub = hub
         self._json_data = json_data
 
-    @property
-    def should_poll(self) -> bool:
-        return False 
-    
     @property
     def device_info(self) -> DeviceInfo:
         # Register the device for updates

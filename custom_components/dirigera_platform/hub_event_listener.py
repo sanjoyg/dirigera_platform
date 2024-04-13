@@ -11,14 +11,11 @@ import ssl
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
-ignored_attributes = { 
-        "light" : ["colorMode"], 
-        "motionSensor" : ["sensor_config","circadian_presets"],
-        "outlet" : [],
-        "shortcutController" : [],
-        "environmentSensor" : [],
-        "lightController" : [],
-    }
+process_events_from = {
+    "motionSensor" : ["isDetected"],
+    "outlet"       : ["isOn"],
+    "light"        : ["isOn"]
+}
 
 def to_snake_case(name:str) -> str:
     return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
@@ -41,11 +38,12 @@ class hub_event_listener(threading.Thread):
         logger.debug(f"on_error hub event listener {ws_msg}")
     
     def on_message(self, ws:Any, ws_msg:str):
+        
         try:
             logger.debug(f"rcvd message : {ws_msg}")
             msg = json.loads(ws_msg)
             if "type" not in msg or msg['type'] != "deviceStateChanged":
-                logger.info(f"discarding message: {msg}")
+                logger.debug(f"discarding non state message: {msg}")
                 return 
 
             if "data" not in msg or "id" not in msg['data']:
@@ -77,26 +75,27 @@ class hub_event_listener(threading.Thread):
                     logger.error(ex)
             
             device_type = None 
-            if "type" in info:
-                device_type = info["type"]
-            elif "deviceType" in info:
+            if "deviceType" in info:
                 device_type = info["deviceType"]
+            elif "type" in info:
+                device_type = info["type"]
             else:
                 logger.warn("expected type or deviceType in JSON, none found, ignoring...")
                 return 
 
             logger.debug(f"device type of message {device_type}")
-            if device_type not in ignored_attributes:
+            if device_type not in process_events_from:
                 # To avoid issues been reported. If we dont have it in our list
                 # then best to not process this event
                 return 
-            to_ignore_list = ignored_attributes[device_type]
+            
+            to_process_attr = process_events_from[device_type]
             
             if "attributes" in info:
                 attributes = info["attributes"]
                 for key in attributes:
-                    if key in to_ignore_list:
-                        logger.debug(f"attribute {key} in ignore list of device type {device_type}, ignoring update...")
+                    if key not in to_process_attr:
+                        logger.debug(f"attribute {key} not in list of device type {device_type}, ignoring update...")
                         continue
                     try:
                         key_attr = to_snake_case(key)

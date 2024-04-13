@@ -5,7 +5,7 @@
     "codeowners": ["@sanjoyg"],
     "config_flow": true,
     "documentation": "https://github.com/sanjoyg/dirigera_platform",
-    "iot_class": "local_poll",
+    "iot_class": "local_polling",
     "issue_tracker": "https://github.com/sanjoyg/dirigera_platform",
     "loggers": ["custom_components.dirigera_platform"],
     "requirements": ["dirigera==1.1.1"],

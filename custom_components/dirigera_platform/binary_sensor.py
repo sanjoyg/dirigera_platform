@@ -73,10 +73,6 @@ class ikea_motion_sensor(BinarySensorEntity):
         logger.debug("ikea_motion_sensor ctor...")
         self._hub = hub
         self._json_data = json_data
-
-    @property
-    def should_poll(self) -> bool:
-        return False 
     
     @property
     def unique_id(self):

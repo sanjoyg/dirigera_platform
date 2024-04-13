@@ -50,10 +50,6 @@ class IkeaBlinds(CoverEntity):
         self._json_data = json_data
 
     @property
-    def should_poll(self) -> bool:
-        return False 
-    
-    @property
     def unique_id(self):
         return self._json_data.id
 
