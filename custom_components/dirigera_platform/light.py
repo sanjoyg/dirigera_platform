@@ -36,7 +36,7 @@ async def async_setup_entry(
 
     #Backward compatibility
     hide_device_set_bulbs = True
-    if config[CONF_HIDE_DEVICE_SET_BULBS] in config:
+    if CONF_HIDE_DEVICE_SET_BULBS in config:
         hide_device_set_bulbs = config[CONF_HIDE_DEVICE_SET_BULBS]
 
     logger.debug(f"found setting hide_device_set_bulbs : {hide_device_set_bulbs}")

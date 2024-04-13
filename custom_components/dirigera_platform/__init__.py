@@ -118,9 +118,8 @@ async def async_setup_entry(
     hub = Hub(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
     
     if hass_data[CONF_IP_ADDRESS] != "mock":
-        pass
-        #hub_events = hub_event_listener(hub)
-        #hub_events.start()
+        hub_events = hub_event_listener(hub)
+        hub_events.start()
 
     logger.debug("Complete async_setup_entry...")
 
