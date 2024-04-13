@@ -11,11 +11,14 @@ from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from homeassistant.core import HomeAssistant, callback
 import homeassistant.helpers.config_validation as cv
 
-from .const import DOMAIN
+from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
-HUB_SCHEMA = vol.Schema({vol.Required(CONF_IP_ADDRESS): cv.string})
+HUB_SCHEMA = vol.Schema({
+    vol.Required(CONF_IP_ADDRESS): cv.string, 
+    vol.Optional(CONF_HIDE_DEVICE_SET_BULBS, default=True): cv.boolean
+    })
 
 NULL_SCHEMA = vol.Schema({})
 
@@ -43,6 +46,7 @@ class dirigera_platform_config_flow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self):
         self.ip = None
         self.code = None
+        self.hide_device_set_bulbs = True 
         self.code_verifier = None
 
     async def async_step_user(
@@ -58,6 +62,7 @@ class dirigera_platform_config_flow(config_entries.ConfigFlow, domain=DOMAIN):
             logger.debug(user_input)
 
             self.ip = user_input[CONF_IP_ADDRESS]
+            self.hide_device_set_bulbs = user_input[CONF_HIDE_DEVICE_SET_BULBS]
 
             if self.ip is None or len(self.ip.strip()) == 0:
                 logger.debug("IP specified is blank...")
@@ -110,6 +115,7 @@ class dirigera_platform_config_flow(config_entries.ConfigFlow, domain=DOMAIN):
 
             user_input[CONF_IP_ADDRESS] = self.ip
             user_input[CONF_TOKEN] = token
+            user_input[CONF_HIDE_DEVICE_SET_BULBS] = self.hide_device_set_bulbs
 
             return self.async_create_entry(
                 title="IKEA Dirigera Hub : {}".format(user_input[CONF_IP_ADDRESS]),
@@ -141,7 +147,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: Dict[str, Any] = None
     ) -> Dict[str, Any]:
+        # Called when configure is called from an existing configured integration
+        # The first screen that is shown, asl called after IP when submitted
+
         logger.debug("OPTIONS async_step_init called....")
+        logger.debug(user_input)
 
         errors: Dict[str, str] = {}
 
@@ -151,6 +161,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             logger.debug(user_input)
 
             self.ip = user_input[CONF_IP_ADDRESS]
+            self.hide_device_set_bulbs = user_input[CONF_HIDE_DEVICE_SET_BULBS]
+            logger.debug(f"IN THIS STEP hide.. set {self.hide_device_set_bulbs}")
 
             if self.ip is None or len(self.ip.strip()) == 0:
                 logger.debug("IP specified is blank...")
@@ -185,11 +197,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self, user_input: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         logger.debug("CONFIG async_step_action called....")
+        logger.debug(user_input)
         # Since IP is specified we will try and get the auth token an set that up in
         # the config for use at a later time
         errors: Dict[str, str] = {}
         logger.debug("ip {}".format(self.ip))
-
+        logger.debug(f"hide device set bulbs {self.hide_device_set_bulbs}")
         # Try and get the token step_2
         try:
             if self.ip == "mock":
@@ -204,6 +217,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
             user_input[CONF_IP_ADDRESS] = self.ip
             user_input[CONF_TOKEN] = token
+            user_input[CONF_HIDE_DEVICE_SET_BULBS] = self.hide_device_set_bulbs
+            logger.debug("before create entry...")
+            logger.debug(user_input)
 
             return self.async_create_entry(
                 title="IKEA Dirigera Hub : {}".format(user_input[CONF_IP_ADDRESS]),

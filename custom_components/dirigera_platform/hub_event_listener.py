@@ -25,7 +25,7 @@ class hub_event_listener(threading.Thread):
 
     def register(id: str, device: any):
         if id in hub_event_listener.device_registry:
-            logger.error(f"duplicate id: {id} requested registration")
+            #logger.error(f"duplicate id: {id} requested registration")
             return 
         hub_event_listener.device_registry[id] = device 
 

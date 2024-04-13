@@ -6,14 +6,16 @@
       "step": {
         "user": {
           "data": {
-            "ip_address": "Hub IP"
+            "ip_address": "Hub IP",
+            "hide_device_set_bulbs": "Hide Device Set Bulbs"
           },
           "description": "Enter IKEA Dirigera Hub Details",
           "title": "IKEA Dirigera Hub Setup"
         },
         "action": {
           "data": {
-            "ip_address": "Hub IP"
+            "ip_address": "Hub IP",
+            "hide_device_set_bulbs": "Hide Device Set Bulbs"
           },
           "description": "Press the action button the dirigera hub and press Submit.",
           "title": "IKEA Dirigera Hub Setup"
@@ -29,13 +31,15 @@
           "title": "IKEA Dirigera Hub Platform",
           "data": {
             "ip_address": "Hub IP",
-            "token": "token"
+            "token": "token",
+            "hide_device_set_bulbs": "Hide Device Set Bulbs"
           },
           "description": "Update IKEA Dirigera Hub Setting..."
         },
         "action": {
           "data": {
-            "ip_address": "Hub IP"
+            "ip_address": "Hub IP",
+            "hide_device_set_bulbs": "Hide Device Set Bulbs"
           },
           "description": "Press the action button the dirigera hub and press Submit.",
           "title": "IKEA Dirigera Hub Setup"

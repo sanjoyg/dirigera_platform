@@ -14,7 +14,7 @@ from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from homeassistant.core import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN
+from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS
 from .mocks.ikea_bulb_mock import ikea_bulb_mock
 from .hub_event_listener import hub_event_listener
 
@@ -34,6 +34,12 @@ async def async_setup_entry(
     # hub = dirigera.Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
     hub = Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
 
+    #Backward compatibility
+    hide_device_set_bulbs = True
+    if config[CONF_HIDE_DEVICE_SET_BULBS] in config:
+        hide_device_set_bulbs = config[CONF_HIDE_DEVICE_SET_BULBS]
+
+    logger.debug(f"found setting hide_device_set_bulbs : {hide_device_set_bulbs}")
     lights = []
 
     # If mock then start with mocks
@@ -61,6 +67,9 @@ async def async_setup_entry(
                     
                     target_device_set = device_sets[id]
                     target_device_set.add_light(light)
+
+                    if not hide_device_set_bulbs:
+                        lights.append(light)
             else:
                 lights.append(light)
 

@@ -17,7 +17,7 @@ from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN
+from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS
 from .hub_event_listener import hub_event_listener
 
 logger = logging.getLogger("custom_components.dirigera_platform")
@@ -27,6 +27,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_IP_ADDRESS): cv.string,
         vol.Required(CONF_TOKEN): cv.string,
+        vol.Optional(CONF_HIDE_DEVICE_SET_BULBS, default=True): cv.boolean
     }
 )
 
@@ -73,9 +74,20 @@ async def async_setup_entry(
     hass.data.setdefault(DOMAIN, {})
     hass_data = dict(entry.data)
 
-    logger.debug("hass_data")
-    logger.debug(hass_data)
+    logger.debug(f"hass_data : {hass_data}")
 
+    # for backward compatibility
+    hide_device_set_bulbs : bool = True 
+    if CONF_HIDE_DEVICE_SET_BULBS in hass_data:
+         logger.debug("Found HIDE_DEVICE_SET *****  ")
+         logger.debug(hass_data)
+         hide_device_set_bulbs = hass_data[CONF_HIDE_DEVICE_SET_BULBS]
+    else:
+        logger.debug("Not found HIDE_DEVICE_SET *****  ")
+        # If its not with HASS update it
+        hass_data[CONF_HIDE_DEVICE_SET_BULBS] = hide_device_set_bulbs
+
+    logger.debug(f"******** HIDE : {hide_device_set_bulbs} ********")
     ip = hass_data[CONF_IP_ADDRESS]
     # Registers update listener to update config entry when options are updated.
     unsub_options_update_listener = entry.add_update_listener(options_update_listener)
@@ -106,8 +118,9 @@ async def async_setup_entry(
     hub = Hub(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
     
     if hass_data[CONF_IP_ADDRESS] != "mock":
-        hub_events = hub_event_listener(hub)
-        hub_events.start()
+        pass
+        #hub_events = hub_event_listener(hub)
+        #hub_events.start()
 
     logger.debug("Complete async_setup_entry...")
 
