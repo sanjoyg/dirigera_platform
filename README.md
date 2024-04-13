@@ -46,7 +46,7 @@ Here is how it looks
 
 ![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-ip-details.png)
 
-To test the integration, enter the IP as "mock"
+To test the integration, enter the IP as "mock". The check-box indicates if the bulbs/lights associated with a device-set should be visible as entities or not
 
 ![](https://github.com/sanjoyg/dirigera_platform/blob/main/screenshots/config-mock.png)
 
