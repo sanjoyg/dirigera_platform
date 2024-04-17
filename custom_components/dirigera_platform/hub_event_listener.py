@@ -12,9 +12,10 @@ import ssl
 logger = logging.getLogger("custom_components.dirigera_platform")
 
 process_events_from = {
-    "motionSensor" : ["isDetected"],
-    "outlet"       : ["isOn"],
-    "light"        : ["isOn"]
+    "motionSensor"    : ["isDetected"],
+    "outlet"          : ["isOn"],
+    "light"           : ["isOn"],
+    "openCloseSensor" : ["isOpen"]
 }
 
 def to_snake_case(name:str) -> str:
