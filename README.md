@@ -72,4 +72,6 @@ To get the JSON do the following
 * Look at the HASS log which would have the JSON. 
 * If you see any platform errors include that as well
 
+[Detailed Instructions](https://github.com/sanjoyg/dirigera_platform/wiki/Calling-dump_data-to-dump-the-JSON)
+
 
