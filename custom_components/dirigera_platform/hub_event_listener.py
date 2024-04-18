@@ -12,7 +12,7 @@ import ssl
 logger = logging.getLogger("custom_components.dirigera_platform")
 
 process_events_from = {
-    "motionSensor"    : ["isDetected"],
+    "motionSensor"    : ["isDetected","isOn"],
     "outlet"          : ["isOn"],
     "light"           : ["isOn"],
     "openCloseSensor" : ["isOpen"]
