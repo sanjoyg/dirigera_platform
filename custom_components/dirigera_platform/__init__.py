@@ -114,6 +114,10 @@ async def async_setup_entry(
     )
     hass.async_create_task(hass.config_entries.async_forward_entry_setup(entry, "fan"))
 
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, "scene")
+    )
+
     # Now lets start the event listender too
     hub = Hub(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
     
@@ -157,6 +161,7 @@ async def async_unload_entry(
                     hass.config_entries.async_forward_entry_unload(entry, "sensor"),
                     hass.config_entries.async_forward_entry_unload(entry, "cover"),
                     hass.config_entries.async_forward_entry_unload(entry, "fan"),
+                    hass.config_entries.async_forward_entry_unload(entry, "scene"),
                 ]
             )
         ]
