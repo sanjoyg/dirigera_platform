@@ -15,7 +15,8 @@ process_events_from = {
     "motionSensor"    : ["isDetected","isOn"],
     "outlet"          : ["isOn"],
     "light"           : ["isOn"],
-    "openCloseSensor" : ["isOpen"]
+    "openCloseSensor" : ["isOpen"],
+    "waterSensor"     : ["waterLeakDetected"]
 }
 
 def to_snake_case(name:str) -> str:
