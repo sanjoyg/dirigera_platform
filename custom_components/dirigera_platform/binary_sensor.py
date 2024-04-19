@@ -5,6 +5,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
+from homeassistant.helpers.entity import Entity
 from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from homeassistant.core import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
@@ -178,6 +179,9 @@ class ikea_water_sensor_device:
         # Register the device for updates
         hub_event_listener.register(self._json_data.id, self)
 
+    def add_listener(self, entity : Entity) -> None:
+        self._listeners.append(entity)
+
     async def async_update(self):
         try:
             logger.debug("water sensor update called...")
@@ -191,7 +195,9 @@ class ikea_water_sensor_device:
 
     #Hack for faster update
     def async_schedule_update_ha_state(self, force_refresh:bool = False) ->None :
+        logger.debug("water sensor update_ha_state")
         for listener in self._listeners:
+            logger.debug("routing to update_ha_state")
             listener.async_schedule_update_ha_state(force_refresh)
 
     @property
@@ -231,7 +237,8 @@ class ikea_water_sensor(BinarySensorEntity):
     def __init__(self, device : ikea_water_sensor_device):
         logger.debug("ikea_water_sensor ctor...")
         self._device = device
-    
+        self._device.add_listener(self)
+
     @property
     def unique_id(self):
         return self._device.unique_id
@@ -254,4 +261,5 @@ class ikea_water_sensor(BinarySensorEntity):
         return self._device.water_leak_detected
     
     async def async_update(self):
+        logger.debug("water sensor entity update")
         await self._device.async_update()

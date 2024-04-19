@@ -107,9 +107,9 @@ class hub_event_listener(threading.Thread):
                         logger.warn(f"Failed to set attribute key: {key} converted to {key_attr} on device: {id}")
                         logger.warn(ex)
                 if delegate is not None:
-                    delegate.async_schedule_update_ha_state(True)
+                    delegate.async_schedule_update_ha_state(False)
                 else:
-                    entity.async_schedule_update_ha_state(True)
+                    entity.async_schedule_update_ha_state(False)
 
         except Exception as ex:
             logger.error("error processing hub event")
