@@ -12,6 +12,7 @@ Supports
 * AirPurifier
 * STARKVIND AirPurifier
 * VALLHORN Motion Sensors
+* Scenes
 
 ## Pre-requisite
 1. Identify the IP of the gateway - Usually looking at the client list in your home router interface will give that.
@@ -27,7 +28,7 @@ Supports
 
 2. Once you get the screen requesting to press the action button, physically press the button once and then click on submit
 
-3. If the IP is right and action button has been pressed, then the integration will be added and all devices registed will be shows. At this time the following device types are supported
+3. If the IP is right and action button has been pressed, then the integration will be added and all devices registered will be shown. At this time the following device types are supported
     a. Lights
     b. Outlets
     c. Motion Sensor
@@ -35,6 +36,8 @@ Supports
     e. Blinds               
     f. STYRBAR Remotes      
     g. AirPurifier
+
+   In addition you'll find the scenes added as individual entities. Go to the "Entities" to find them as they're not part of any device. Use the "Activate" button to trigger a scene.
 
 ## Testing installation with mock
 1. If you enter the IP as "mock" then mock bulbs and outlet will be added.
