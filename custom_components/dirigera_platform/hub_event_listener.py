@@ -54,6 +54,22 @@ class hub_event_listener(threading.Thread):
             
             info = msg['data'] 
             id = info['id']
+
+            device_type = None
+            if "deviceType" in info:
+                device_type = info["deviceType"]
+            elif "type" in info:
+                device_type = info["type"]
+            else:
+                logger.warn("expected type or deviceType in JSON, none found, ignoring...")
+                return
+
+            logger.debug(f"device type of message {device_type}")
+            if device_type not in process_events_from:
+                # To avoid issues been reported. If we dont have it in our list
+                # then best to not process this event
+                return
+
             if id not in hub_event_listener.device_registry:
                 logger.info(f"discarding message as device for id: {id} not found for msg: {msg}")
                 return 
@@ -75,22 +91,7 @@ class hub_event_listener(threading.Thread):
                 except Exception as ex:
                     logger.error(f"Failed to setattr is_reachable on device: {id} for msg: {msg}")
                     logger.error(ex)
-            
-            device_type = None 
-            if "deviceType" in info:
-                device_type = info["deviceType"]
-            elif "type" in info:
-                device_type = info["type"]
-            else:
-                logger.warn("expected type or deviceType in JSON, none found, ignoring...")
-                return 
 
-            logger.debug(f"device type of message {device_type}")
-            if device_type not in process_events_from:
-                # To avoid issues been reported. If we dont have it in our list
-                # then best to not process this event
-                return 
-            
             to_process_attr = process_events_from[device_type]
             
             if "attributes" in info:
