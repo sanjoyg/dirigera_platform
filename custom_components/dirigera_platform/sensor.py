@@ -59,6 +59,9 @@ async def async_setup_entry(
         controller_devices = [
             ikea_controller(hub, controller_device)
             for controller_device in hub_controllers
+            # Only create a battery sensor entity if the device reports battery percentage
+            # This is not the case of the second device for SOMRIG controllers
+            if controller_device.attributes.battery_percentage
         ]
 
     env_sensors = []
