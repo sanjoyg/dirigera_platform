@@ -46,6 +46,7 @@ class ikea_blinds_mock(CoverEntity):
             manufacturer=self._manufacturer,
             model=self._model,
             sw_version=self._sw_version,
+            suggested_area="Bedroom",
         )
 
     @property

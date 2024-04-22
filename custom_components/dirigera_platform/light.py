@@ -1,7 +1,9 @@
 import logging
+from typing import Optional
 import dirigera
 
 from dirigera import Hub
+from dirigera.devices.device import Room
 from homeassistant import config_entries, core
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
@@ -59,11 +61,13 @@ async def async_setup_entry(
                 for one_set in light._json_data.device_set:
                     id = one_set['id']
                     name = one_set['name']
+                    # Use the room of the first light encountered in the set as the 'suggested area' for HA
+                    suggested_room = light._json_data.room
 
                     target_device_set = None 
                     if id not in device_sets:
                         logger.debug(f"Found new device set {name}")
-                        device_sets[id] = device_set_model(id, name)
+                        device_sets[id] = device_set_model(id, name, suggested_room)
                     
                     target_device_set = device_sets[id]
                     target_device_set.add_light(light)
@@ -81,11 +85,12 @@ async def async_setup_entry(
     logger.debug("LIGHT Complete async_setup_entry")
 
 class device_set_model:
-    def __init__(self, id, name):
+    def __init__(self, id, name, suggested_room: Optional[Room]):
         logger.debug(f"device_set ctor {id} : {name}")
         self._lights = []
         self._name = name 
-        self._id = id 
+        self._id = id
+        self._suggested_room = suggested_room
         
     @property
     def id(self):
@@ -93,7 +98,11 @@ class device_set_model:
     
     @property
     def name(self):
-        return self._name 
+        return self._name
+
+    @property
+    def suggested_room(self) -> Optional[Room]:
+        return self._suggested_room
     
     def get_lights(self) -> list:
         return self._lights
@@ -172,6 +181,7 @@ class ikea_bulb(LightEntity):
             manufacturer=self._json_data.attributes.manufacturer,
             model=self._json_data.attributes.model,
             sw_version=self._json_data.attributes.firmware_version,
+            suggested_area=self._json_data.room.name if self._json_data.room is not None else None,
         )
 
     @property
@@ -326,6 +336,7 @@ class ikea_bulb_device_set(LightEntity):
             manufacturer="IKEA",
             model="Device Set",
             sw_version="1.0",
+            suggested_area=self._device_set.suggested_room.name if self._device_set.suggested_room is not None else None,
         )
 
     @property
