@@ -104,6 +104,7 @@ class ikea_motion_sensor(BinarySensorEntity):
             manufacturer=self._json_data.attributes.manufacturer,
             model=self._json_data.attributes.model,
             sw_version=self._json_data.attributes.firmware_version,
+            suggested_area=self._json_data.room.name if self._json_data.room is not None else None,
         )
 
     @property
@@ -142,6 +143,7 @@ class ikea_open_close(ikea_motion_sensor):
             manufacturer=self._json_data.attributes.manufacturer,
             model=self._json_data.attributes.model,
             sw_version=self._json_data.attributes.firmware_version,
+            suggested_area=self._json_data.room.name if self._json_data.room is not None else None,
         )
 
     @property
@@ -220,6 +222,7 @@ class ikea_water_sensor_device:
             manufacturer=self._json_data.attributes.manufacturer,
             model=self._json_data.attributes.model,
             sw_version=self._json_data.attributes.firmware_version,
+            suggested_area=self._json_data.room.name if self._json_data.room is not None else None,
         )
 
     @property

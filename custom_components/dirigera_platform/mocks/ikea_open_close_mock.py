@@ -33,6 +33,7 @@ class ikea_open_close_mock(BinarySensorEntity):
             manufacturer=self._manufacturer,
             model=self._model,
             sw_version=self._sw_version,
+            suggested_area="Living room",
         )
 
     @property

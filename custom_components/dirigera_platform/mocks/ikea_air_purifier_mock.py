@@ -67,6 +67,7 @@ class ikea_starkvind_air_purifier_mock_device:
             manufacturer="MOCK",
             model="Mock 1.0",
             sw_version="Mock SW 1.0",
+            suggested_area="Kitchen",
         )
 
     @property

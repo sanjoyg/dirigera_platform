@@ -68,6 +68,7 @@ class IkeaBlinds(CoverEntity):
             manufacturer=self._json_data.attributes.manufacturer,
             model=self._json_data.attributes.model,
             sw_version=self._json_data.attributes.firmware_version,
+            suggested_area=self._json_data.room.name if self._json_data.room is not None else None,
         )
 
     @property
