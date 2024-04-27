@@ -12,8 +12,8 @@ from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from .const import DOMAIN
 from .mocks.ikea_motion_sensor_mock import ikea_motion_sensor_mock
 from .mocks.ikea_open_close_mock import ikea_open_close_mock
-from .common_classes import battery_percentage_sensor
-from .common_classes import ikea_base_device, ikea_base_device_sensor
+from .base_classes import battery_percentage_sensor
+from .base_classes import ikea_base_device, ikea_base_device_sensor
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 

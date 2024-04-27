@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistantError
 
 from .const import DOMAIN
 from .mocks.ikea_air_purifier_mock import ikea_starkvind_air_purifier_mock_device
-from .common_classes import ikea_base_device, ikea_base_device_sensor
+from .base_classes import ikea_base_device, ikea_base_device_sensor
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 

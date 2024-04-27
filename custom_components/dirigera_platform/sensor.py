@@ -13,7 +13,7 @@ from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from homeassistant.core import HomeAssistantError
 
 from .const import DOMAIN
-from .common_classes import ikea_base_device, ikea_base_device_sensor
+from .base_classes import ikea_base_device, ikea_base_device_sensor
 logger = logging.getLogger("custom_components.dirigera_platform")
 
 async def async_setup_entry(
