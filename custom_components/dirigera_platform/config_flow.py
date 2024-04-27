@@ -5,10 +5,10 @@ from typing import Any, Dict
 from dirigera.hub.auth import get_token, random_code, send_challenge
 import voluptuous as vol
 
-from homeassistant import config_entries, core, data_entry_flow
+from homeassistant import config_entries, core
 from homeassistant.components.light import PLATFORM_SCHEMA
 from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
 import homeassistant.helpers.config_validation as cv
 
 from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS

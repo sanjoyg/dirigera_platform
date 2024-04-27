@@ -3,19 +3,18 @@ from enum import Enum
 import logging
 
 from dirigera import Hub
+from dirigera.devices.environment_sensor import EnvironmentSensor
+from dirigera.devices.controller import Controller
 
 from homeassistant.helpers.entity import Entity
 from homeassistant import config_entries, core
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from homeassistant.core import HomeAssistantError
-from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
-from .hub_event_listener import hub_event_listener
-
+from .base_classes import ikea_base_device, ikea_base_device_sensor
 logger = logging.getLogger("custom_components.dirigera_platform")
-
 
 async def async_setup_entry(
     hass: core.HomeAssistant,
@@ -57,7 +56,7 @@ async def async_setup_entry(
 
         hub_controllers = await hass.async_add_executor_job(hub.get_controllers)
         controller_devices = [
-            ikea_controller(hub, controller_device)
+            ikea_controller(hass, hub, controller_device)
             for controller_device in hub_controllers
             # Only create a battery sensor entity if the device reports battery percentage
             # This is not the case of the second device for SOMRIG controllers
@@ -83,27 +82,12 @@ async def async_setup_entry(
 
     logger.debug("EnvSensor & Controllers Complete async_setup_entry")
 
-class ikea_vindstyrka_device:
-    def __init__(self, hass, hub, json_data) -> None:
-        self._hass = hass 
-        self._json_data = json_data
-        self._updated_at = None
-        self._hub = hub
-        self._listeners = []
+class ikea_vindstyrka_device(ikea_base_device):
+    def __init__(self, hass:core.HomeAssistant, hub:Hub , json_data:EnvironmentSensor) -> None:
+        super().__init__(hass, hub, json_data, hub.get_environment_sensor_by_id)
+        self._updated_at = None 
 
-        # Register the device for updates
-        hub_event_listener.register(self._json_data.id, self)
-
-    def add_listener(self, entity : Entity) -> None:
-        self._listeners.append(entity)
-
-    # Hack for faster update
-    def async_schedule_update_ha_state(self, force_refresh:bool = False) ->None :
-        for listener in self._listeners:
-            listener.async_schedule_update_ha_state(force_refresh)
-
-    async def async_update(self):
-        
+    async def async_update(self):        
         if self._updated_at is None or (datetime.datetime.now() - self._updated_at).total_seconds() > 30:
             try:
                 logger.debug("env sensor update called...")
@@ -116,67 +100,14 @@ class ikea_vindstyrka_device:
                 logger.error(ex)
                 raise HomeAssistantError(ex, DOMAIN, "hub_exception")
 
-    def get_current_temperature(self):
-        return self._json_data.attributes.current_temperature
-
-    def get_current_r_h(self):
-        return self._json_data.attributes.current_r_h
-
-    def get_current_p_m25(self):
-        return self._json_data.attributes.current_p_m25
-
-    def get_max_measured_p_m25(self):
-        return self._json_data.attributes.max_measured_p_m25
-
-    def get_min_measured_p_m25(self):
-        return self._json_data.attributes.min_measured_p_m25
-
-    def get_voc_index(self):
-        return self._json_data.attributes.voc_index
-
-    @property
-    def available(self):
-        return self._json_data.is_reachable
-
-    @property
-    def device_info(self) -> DeviceInfo:
-
-        return DeviceInfo(
-            identifiers={("dirigera_platform", self._json_data.id)},
-            name=self.name,
-            manufacturer=self._json_data.attributes.manufacturer,
-            model=self._json_data.attributes.model,
-            sw_version=self._json_data.attributes.firmware_version,
-            suggested_area=self._json_data.room.name if self._json_data.room is not None else None,
-        )
-
-    @property
-    def name(self) -> str:
-        if self._json_data.attributes.custom_name is None or len(self._json_data.attributes.custom_name) == 0:
-            return self.unique_id
-        return self._json_data.attributes.custom_name
-
-    @property
-    def unique_id(self):
-        return self._json_data.id
-
-class ikea_env_base_entity(SensorEntity):
+class ikea_env_base_entity(ikea_base_device_sensor, SensorEntity):
     def __init__(
         self, ikea_env_device: ikea_vindstyrka_device, id_suffix: str, name_suffix: str
     ):
         logger.debug("ikea_env_base_entity ctor...")
-        self._ikea_env_device = ikea_env_device
+        super().__init__(ikea_env_device)
         self._unique_id = self._ikea_env_device.unique_id + id_suffix
         self._name = self._ikea_env_device.name + " " + name_suffix
-        ikea_env_device.add_listener(self)
-
-    @property
-    def available(self):
-        return self._ikea_env_device.available
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return self._ikea_env_device.device_info
 
     @property
     def name(self):
@@ -292,51 +223,10 @@ class ikea_vindstyrka_voc_index(ikea_env_base_entity):
     def native_unit_of_measurement(self) -> str:
         return "µg/m³"
 
-class ikea_controller(SensorEntity):
-    def __init__(self,hub, json_data):
+class ikea_controller(ikea_base_device, SensorEntity):
+    def __init__(self,hass:core.HomeAssistant, hub:Hub, json_data:Controller):
         logger.debug("ikea_controller ctor...")
-        self._hub = hub
-        self._json_data = json_data
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        # Register the device for updates
-        hub_event_listener.register(self._json_data.id, self)
-        
-        return DeviceInfo(
-            identifiers={("dirigera_platform", self._json_data.id)},
-            name=self.name,
-            manufacturer=self._json_data.attributes.manufacturer,
-            model=self._json_data.attributes.model,
-            sw_version=self._json_data.attributes.firmware_version,
-            suggested_area=self._json_data.room.name if self._json_data.room is not None else None,
-        )
-
-    @property
-    def available(self):
-        return self._json_data.is_reachable
-
-    @property
-    def unique_id(self):
-        return self._json_data.id
-
-    @property
-    def available(self):
-        return self._json_data.is_reachable
-
-    @property
-    def name(self):
-        if self._json_data.attributes.custom_name is None or len(self._json_data.attributes.custom_name) == 0:
-            return self.unique_id
-        return self._json_data.attributes.custom_name
-
-    @property
-    def is_on(self):
-        return self._json_data.attributes.is_on
-
-    #@property
-    #def device_info(self) -> DeviceInfo:
-    #    return SensorDeviceClass.BATTERY
+        super().__init__(hass, hub,json_data, hub.get_controller_by_id)
 
     @property
     def icon(self):
@@ -349,15 +239,6 @@ class ikea_controller(SensorEntity):
     @property
     def native_unit_of_measurement(self) -> str:
         return "%"
-
-    async def async_update(self):
-        logger.debug("controller update...")
-        try:
-            self._json_data = await self.hass.async_add_executor_job(self._hub.get_controller_by_name, self._json_data.attributes.custom_name)
-        except Exception as ex:
-            logger.error("error encountered running update on : {}".format(self.name))
-            logger.error(ex)
-            raise HomeAssistantError(ex, DOMAIN, "hub_exception")
 
 # SOMRIG Controllers act differently in the gateway Hub
 # While its one device but two id's are sent back each

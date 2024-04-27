@@ -4,6 +4,7 @@ import math
 
 from dirigera import Hub
 from dirigera.devices.air_purifier import FanModeEnum
+from dirigera.devices.air_purifier import AirPurifier
 
 from homeassistant import config_entries, core
 from homeassistant.components.binary_sensor import (
@@ -16,14 +17,12 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from homeassistant.core import HomeAssistantError
-from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
 from .mocks.ikea_air_purifier_mock import ikea_starkvind_air_purifier_mock_device
-from .hub_event_listener import hub_event_listener
+from .base_classes import ikea_base_device, ikea_base_device_sensor
 
 logger = logging.getLogger("custom_components.dirigera_platform")
-
 
 async def async_setup_entry(
     hass: core.HomeAssistant,
@@ -47,24 +46,21 @@ async def async_setup_entry(
         # ikea_vindstyrka_temperature.async_will_remove_from_hass = ikea_vindstyrka_device_mock.async_will_remove_from_hass
 
     else:
-        hub_air_purifiers = await hass.async_add_executor_job(hub.get_air_purifiers)
-        air_purifiers = [
-            ikea_starkvind_air_purifier_device(hass, hub, air_purifier)
-            for air_purifier in hub_air_purifiers
-        ]
+        hub_air_purifiers : list[AirPurifier] = await hass.async_add_executor_job(hub.get_air_purifiers)
+        air_purifier_devices : list[ikea_starkvind_air_purifier_device] = [ikea_starkvind_air_purifier_device(hass, hub, a) for a in hub_air_purifiers]
 
     sensor_to_add = []
     logger.debug("Found {} air_purifier devices to setup...".format(len(air_purifiers)))
 
-    for air_purifier_device in air_purifiers:
+    for device in air_purifier_devices:
         # Fan Entity
-        sensor_to_add.append(ikea_starkvind_air_purifier_fan(air_purifier_device))
+        sensor_to_add.append(ikea_starkvind_air_purifier_fan(device))
 
         # Separate BinarySensor Entitiy is created for the following
         # 1. filterAlarmStatus  - BinarySensor
         sensor_to_add.append(
             ikea_starkvind_air_purifier_binary_sensor(
-                air_purifier_device,
+                device,
                 BinarySensorDeviceClass.PROBLEM,
                 "Filter Alarm Status",
                 "filter_alarm_status",
@@ -77,7 +73,7 @@ async def async_setup_entry(
         # 2. statusLight        - BinarySensor
         sensor_to_add.append(
             ikea_starkvind_air_purifier_switch_sensor(
-                air_purifier_device,
+                device,
                 "Child Lock",
                 "child_lock",
                 "async_set_child_lock",
@@ -86,7 +82,7 @@ async def async_setup_entry(
         )
         sensor_to_add.append(
             ikea_starkvind_air_purifier_switch_sensor(
-                air_purifier_device,
+                device,
                 "Status Light",
                 "status_light",
                 "async_set_status_light",
@@ -101,7 +97,7 @@ async def async_setup_entry(
         # 4. MotorRunTime       - Sensor
         sensor_to_add.append(
             ikea_starkvind_air_purifier_sensor(
-                air_purifier_device,
+                device,
                 "Filter Lifetime",
                 SensorDeviceClass.DURATION,
                 "filter_lifetime",
@@ -111,7 +107,7 @@ async def async_setup_entry(
         )
         sensor_to_add.append(
             ikea_starkvind_air_purifier_sensor(
-                air_purifier_device,
+                device,
                 "Filter Elapsed Time",
                 SensorDeviceClass.DURATION,
                 "filter_elapsed_time",
@@ -121,7 +117,7 @@ async def async_setup_entry(
         )
         sensor_to_add.append(
             ikea_starkvind_air_purifier_sensor(
-                air_purifier_device,
+                device,
                 "Current pm25",
                 SensorDeviceClass.PM25,
                 "current_p_m25",
@@ -131,7 +127,7 @@ async def async_setup_entry(
         )
         sensor_to_add.append(
             ikea_starkvind_air_purifier_sensor(
-                air_purifier_device,
+                device,
                 "Motor Runtime",
                 SensorDeviceClass.DURATION,
                 "motor_runtime",
@@ -143,20 +139,29 @@ async def async_setup_entry(
     async_add_entities(sensor_to_add)
     logger.debug("FAN/AirPurifier Complete async_setup_entry")
 
-class ikea_starkvind_air_purifier_device:
+class ikea_starkvind_air_purifier_device(ikea_base_device):
     def __init__(self, hass, hub, json_data) -> None:
-        self._hass = hass 
-        self._json_data = json_data
+        logger.debug("Air purifer Fan device ctor ...")
+        super().__init__(hass, hub, json_data, hub.get_air_purifier_by_id)
         self._updated_at = None
-        self._hub = hub
-        self._updated_at = None
-        self._listeners = []
 
-        # Register the device for updates
-        hub_event_listener.register(self._json_data.id, self)
-        
-        logger.debug("Air purifer Fan Entity ctor complete...")
+    @property
+    def supported_features(self):
+        return FanEntityFeature.PRESET_MODE | FanEntityFeature.SET_SPEED
 
+    @property
+    def percentage(self) -> int:
+        # Scale the 1-50 into
+        return math.ceil(self.motor_state * 100 / 50)
+
+    @property
+    def preset_modes(self) -> list[str]:
+        return [e.value for e in FanModeEnum]
+    
+    @property
+    def preset_mode(self) -> str:
+        return self.fan_mode
+    
     async def async_update(self):
         if (
             self._updated_at is None
@@ -171,103 +176,6 @@ class ikea_starkvind_air_purifier_device:
                 )
                 logger.error(ex)
                 raise HomeAssistantError(ex, DOMAIN, "hub_exception")
-
-    def add_listener(self, entity : Entity) -> None:
-        self._listeners.append(entity)
-
-    # Hack for faster update
-    def async_schedule_update_ha_state(self, force_refresh:bool = False) -> None:
-        for listener in self._listeners:
-            listener.async_schedule_update_ha_state(force_refresh)
-
-    @property
-    def available(self):
-        return self._json_data.is_reachable
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        
-        return DeviceInfo(
-            identifiers={("dirigera_platform", self._json_data.id)},
-            name=self.name,
-            manufacturer=self._json_data.attributes.manufacturer,
-            model=self._json_data.attributes.model,
-            sw_version=self._json_data.attributes.firmware_version,
-            suggested_area=self._json_data.room.name if self._json_data.room is not None else None,
-        )
-
-    @property
-    def name(self) -> str:
-        if self._json_data.attributes.custom_name is None or len(self._json_data.attributes.custom_name) == 0:
-            return self.unique_id
-        return self._json_data.attributes.custom_name
-
-    @property
-    def unique_id(self):
-        return self._json_data.id
-
-    @property
-    def supported_features(self):
-        return FanEntityFeature.PRESET_MODE | FanEntityFeature.SET_SPEED
-
-    @property
-    def motor_state(self) -> int:
-        return self._json_data.attributes.motor_state
-
-    @property
-    def percentage(self) -> int:
-        # Scale the 1-50 into
-        return math.ceil(self.motor_state * 100 / 50)
-
-    @property
-    def fan_mode_sequence(self) -> str:
-        return self._json_data.attributes.fan_mode_sequence
-
-    @property
-    def preset_modes(self):
-        return [e.value for e in FanModeEnum]
-
-    @property
-    def preset_mode(self) -> str:
-        return self._json_data.attributes.fan_mode
-
-    @property
-    def speed_count(self):
-        return 50
-
-    @property
-    def motor_runtime(self):
-        return self._json_data.attributes.motor_runtime
-
-    @property
-    def filter_alarm_status(self) -> bool:
-        return self._json_data.attributes.filter_alarm_status
-
-    @property
-    def filter_elapsed_time(self) -> int:
-        return self._json_data.attributes.filter_elapsed_time
-
-    @property
-    def filter_lifetime(self) -> int:
-        return self._json_data.attributes.filter_lifetime
-
-    @property
-    def current_p_m25(self) -> int:
-        return self._json_data.attributes.current_p_m25
-
-    @property
-    def status_light(self) -> bool:
-        return self._json_data.attributes.status_light
-
-    @property
-    def child_lock(self) -> bool:
-        return self._json_data.attributes.child_lock
-
-    @property
-    def is_on(self):
-        if self.available and self.motor_state > 0:
-            return True
-        return False
 
     async def async_set_percentage(self, percentage: int) -> None:
         # Convert percent to speed
@@ -300,7 +208,9 @@ class ikea_starkvind_air_purifier_device:
             mode_to_set = FanModeEnum.MEDIUM
         elif preset_mode == "low":
             mode_to_set = FanModeEnum.LOW
-
+        elif preset_mode == "off":
+            mode_to_set = FanModeEnum.OFF
+        logger.error(f"Asked to set preset {preset_mode}")
         if mode_to_set is None:
             logger.error("Non defined preset used to set : {}".format(preset_mode))
             return
@@ -331,63 +241,30 @@ class ikea_starkvind_air_purifier_device:
                 await self.async_set_preset_mode("auto")
 
     async def async_turn_off(self, **kwargs) -> None:
-        await self._hass.async_add_executor_job(self.set_percentage, 0)
+        await self.async_set_percentage(0)
+        #await self._hass.async_add_executor_job(self.set_percentage, 0)
 
-class ikea_starkvind_air_purifier_fan(FanEntity):
+class ikea_starkvind_air_purifier_fan(ikea_base_device_sensor, FanEntity):
     def __init__(self, device: ikea_starkvind_air_purifier_device) -> None:
-        self._device = device
-        device.add_listener(self)   
+        logger.debug("Air purifer Fan sensor ctor ...")
+        super().__init__(device)
     
-    @property
-    def available(self):
-        return self._device.available
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return self._device.device_info
-
-    @property
-    def name(self):
-        return self._device.name
-
-    @property
-    def preset_mode(self):
-        return self._device.preset_mode
-
-    @property
-    def speed_count(self):
-        return self._device.speed_count
-
-    @property
-    def unique_id(self) -> str:
-        return self._device.unique_id
-
-    @property
-    def supported_features(self):
-        return self._device.supported_features
-
-    @property
-    def is_on(self):
-        return self._device.is_on
-
     @property
     def percentage(self):
         return self._device.percentage
 
     @property
+    def preset_modes(self) -> list[str]:
+        return self._device.preset_modes
+    
+    @property
     def preset_mode(self):
         return self._device.preset_mode
 
-    @property
-    def preset_modes(self):
-        return self._device.preset_modes
-
+    # Property Doesnt Exist
     @property
     def speed_count(self):
-        return self._device.speed_count
-
-    async def async_update(self):
-        await self._device.async_update()
+        return 50
 
     async def async_set_percentage(self, percentage: int) -> None:
         await self._device.async_set_percentage(percentage)
@@ -401,7 +278,7 @@ class ikea_starkvind_air_purifier_fan(FanEntity):
     async def async_turn_off(self, **kwargs) -> None:
         await self._device.async_turn_off()
 
-class ikea_starkvind_air_purifier_sensor(SensorEntity):
+class ikea_starkvind_air_purifier_sensor(ikea_base_device_sensor, SensorEntity):
     def __init__(
         self,
         device: ikea_starkvind_air_purifier_device,
@@ -411,17 +288,13 @@ class ikea_starkvind_air_purifier_sensor(SensorEntity):
         native_uom: str,
         icon_name: str,
     ):
-        self._device = device
+        logger.debug("ikea_starkvind_air_purifier_sensor ctor ...")
+        super().__init__(device)
         self._prefix = prefix
         self._native_value_prop = native_value_prop
         self._device_class = device_class
         self._native_unit_of_measurement = native_uom
         self._icon = icon_name
-        device.add_listener(self)
-
-
-    async def async_update(self):
-        await self._device.async_update()
 
     @property
     def icon(self):
@@ -434,14 +307,6 @@ class ikea_starkvind_air_purifier_sensor(SensorEntity):
     @property
     def unique_id(self) -> str:
         return self._device.unique_id + self._prefix
-
-    @property
-    def available(self):
-        return self._device.available
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return self._device.device_info
 
     @property
     def device_class(self):
@@ -461,7 +326,7 @@ class ikea_starkvind_air_purifier_sensor(SensorEntity):
     async def async_turn_on(self):
         pass 
 
-class ikea_starkvind_air_purifier_binary_sensor(BinarySensorEntity):
+class ikea_starkvind_air_purifier_binary_sensor(ikea_base_device_sensor, BinarySensorEntity):
     def __init__(
         self,
         device: ikea_starkvind_air_purifier_device,
@@ -470,17 +335,14 @@ class ikea_starkvind_air_purifier_binary_sensor(BinarySensorEntity):
         native_value_prop: str,
         icon_name: str,
     ):
-        self._device = device
+        logger.debug("ikea_starkvind_air_purifier_binary_sensor ctor ...")
+        super().__init__(device)
         self._prefix = prefix
         self._device_class = device_class
         self._native_value_prop = native_value_prop
         self._icon = icon_name
         device.add_listener(self)
     
-    
-    async def async_update(self):
-        await self._device.async_update()
-
     @property
     def icon(self):
         return self._icon
@@ -494,20 +356,8 @@ class ikea_starkvind_air_purifier_binary_sensor(BinarySensorEntity):
         return self._device.unique_id + self._prefix
 
     @property
-    def available(self):
-        return self._device.available
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return self._device.device_info
-
-    @property
     def device_class(self):
         return self._device_class
-
-    @property
-    def is_on(self):
-        return getattr(self._device, self._native_value_prop)
 
     def async_turn_off(self):
         pass
@@ -515,7 +365,7 @@ class ikea_starkvind_air_purifier_binary_sensor(BinarySensorEntity):
     def async_handle_turn_on_service(self):
         pass
 
-class ikea_starkvind_air_purifier_switch_sensor(SwitchEntity):
+class ikea_starkvind_air_purifier_switch_sensor(ikea_base_device_sensor, SwitchEntity):
     def __init__(
         self,
         device: ikea_starkvind_air_purifier_device,
@@ -524,15 +374,12 @@ class ikea_starkvind_air_purifier_switch_sensor(SwitchEntity):
         turn_on_off_fx: str,
         icon_name: str,
     ):
-        self._device = device
+        logger.debug("ikea_starkvind_air_purifier_switch_sensor ctor...")
+        super().__init__(device)
         self._prefix = prefix
         self._is_on_prop = is_on_prop
         self._turn_on_off = getattr(self._device, turn_on_off_fx)
         self._icon = icon_name
-        device.add_listener(self)
-
-    async def async_update(self):
-        await self._device.async_update()
 
     @property
     def icon(self):
@@ -547,21 +394,8 @@ class ikea_starkvind_air_purifier_switch_sensor(SwitchEntity):
         return self._device.unique_id + self._prefix
 
     @property
-    def available(self):
-        return self._device.available
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return self._device.device_info
-
-    @property
     def device_class(self):
         return SwitchDeviceClass.OUTLET
-
-    @property
-    def is_on(self):
-        logger.debug("ikea_starkvind_air_purifier_switch_sensor is_on call..")
-        return getattr(self._device, self._is_on_prop)
 
     async def async_handle_turn_on_service(self):
         logger.debug("{} turn_on".format(self.name))

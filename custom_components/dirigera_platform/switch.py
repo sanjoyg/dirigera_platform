@@ -1,6 +1,8 @@
 import logging
 
 from dirigera import Hub
+from dirigera.devices.outlet import Outlet
+
 from homeassistant import config_entries, core
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
@@ -9,8 +11,7 @@ from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
 from .mocks.ikea_outlet_mock import ikea_outlet_mock
-from .hub_event_listener import hub_event_listener
-
+from .base_classes import ikea_base_device
 logger = logging.getLogger("custom_components.dirigera_platform")
 
 
@@ -33,50 +34,16 @@ async def async_setup_entry(
         mock_outlet1 = ikea_outlet_mock(hub, "mock_outlet1")
         outlets = [mock_outlet1]
     else:
-        hub_outlets = await hass.async_add_executor_job(hub.get_outlets)
-        outlets = [ikea_outlet(hub, outlet) for outlet in hub_outlets]
+        hub_outlets : list[Outlet]  = await hass.async_add_executor_job(hub.get_outlets)
+        outlets = [ikea_outlet(hass, hub, outlet) for outlet in hub_outlets]
 
     logger.debug("Found {} outlet entities to setup...".format(len(outlets)))
     async_add_entities(outlets)
     logger.debug("SWITCH Complete async_setup_entry")
 
-class ikea_outlet(SwitchEntity):
-    def __init__(self, hub, json_data):
-        logger.debug("ikea_outlet ctor...")
-        self._hub = hub
-        self._json_data = json_data
- 
-    @property
-    def unique_id(self):
-        return self._json_data.id
-
-    @property
-    def available(self):
-        return self._json_data.is_reachable
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        # Register the device for updates
-        hub_event_listener.register(self._json_data.id, self)
-
-        return DeviceInfo(
-            identifiers={("dirigera_platform", self._json_data.id)},
-            name=self.name,
-            manufacturer=self._json_data.attributes.manufacturer,
-            model=self._json_data.attributes.model,
-            sw_version=self._json_data.attributes.firmware_version,
-            suggested_area=self._json_data.room.name if self._json_data.room is not None else None,
-        )
-
-    @property
-    def name(self):
-        if self._json_data.attributes.custom_name is None or len(self._json_data.attributes.custom_name) == 0:
-            return self.unique_id
-        return self._json_data.attributes.custom_name
-
-    @property
-    def is_on(self):
-        return self._json_data.attributes.is_on
+class ikea_outlet(ikea_base_device, SwitchEntity):
+    def __init__(self, hass, hub, json_data):
+        super().__init__(hass, hub, json_data, hub.get_outlet_by_id)
 
     async def async_turn_on(self):
         logger.debug("outlet turn_on")
@@ -93,14 +60,5 @@ class ikea_outlet(SwitchEntity):
             await self.hass.async_add_executor_job(self._json_data.set_on, False)
         except Exception as ex:
             logger.error("error encountered turning off : {}".format(self.name))
-            logger.error(ex)
-            raise HomeAssistantError(ex, DOMAIN, "hub_exception")
-
-    async def async_update(self):
-        logger.debug("outlet update...")
-        try:
-            self._json_data = await self.hass.async_add_executor_job(self._hub.get_outlet_by_id, self._json_data.id)
-        except Exception as ex:
-            logger.error("error encountered running update on : {}".format(self.name))
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")

@@ -1,6 +1,5 @@
 import logging
 from typing import Optional
-import dirigera
 
 from dirigera import Hub
 from dirigera.devices.device import Room
@@ -19,9 +18,9 @@ from homeassistant.helpers.entity import DeviceInfo
 from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS
 from .mocks.ikea_bulb_mock import ikea_bulb_mock
 from .hub_event_listener import hub_event_listener
+from .base_classes import ikea_base_device
 
 logger = logging.getLogger("custom_components.dirigera_platform")
-
 
 async def async_setup_entry(
     hass: core.HomeAssistant,
@@ -51,7 +50,7 @@ async def async_setup_entry(
         lights = [mock_bulb1]
     else:
         hub_lights = await hass.async_add_executor_job(hub.get_lights)
-        all_lights = [ikea_bulb(hub, light) for light in hub_lights]
+        all_lights = [ikea_bulb(hass, hub, light) for light in hub_lights]
         logger.debug("Found {} total of all light entities to setup...".format(len(all_lights)))
         
         device_sets  = {}
@@ -111,12 +110,11 @@ class device_set_model:
         logger.debug(f"Adding {bulb.name} to device_set : {self.name}")
         self._lights.append(bulb)
 
-class ikea_bulb(LightEntity):
+class ikea_bulb(ikea_base_device, LightEntity):
     
-    def __init__(self, hub, json_data) -> None:
+    def __init__(self, hass, hub, json_data) -> None:
         logger.debug("ikea_bulb ctor...")
-        self._hub = hub
-        self._json_data = json_data
+        super().__init__(hass, hub, json_data, hub.get_light_by_id)
         self.set_state()
 
     def set_state(self):
@@ -158,38 +156,6 @@ class ikea_bulb(LightEntity):
         logger.debug(self._supported_color_modes)
         logger.debug("color mode set to:")
         logger.debug(self._color_mode)
-
-    @property
-    def unique_id(self):
-        logger.debug("unique id called...")
-        return self._json_data.id
-
-    @property
-    def available(self):
-        return self._json_data.is_reachable
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        logger.debug("device info called...")
-
-        # Register the device for updates
-        hub_event_listener.register(self._json_data.id, self)
-
-        return DeviceInfo(
-            identifiers={("dirigera_platform", self._json_data.id)},
-            name=self.name,
-            manufacturer=self._json_data.attributes.manufacturer,
-            model=self._json_data.attributes.model,
-            sw_version=self._json_data.attributes.firmware_version,
-            suggested_area=self._json_data.room.name if self._json_data.room is not None else None,
-        )
-
-    @property
-    def name(self):
-        
-        if self._json_data.attributes.custom_name is None or len(self._json_data.attributes.custom_name) == 0:
-            return self.unique_id
-        return self._json_data.attributes.custom_name
     
     @property
     def brightness(self):
@@ -198,26 +164,22 @@ class ikea_bulb(LightEntity):
 
     @property
     def max_color_temp_kelvin(self):
-        return self._json_data.attributes.color_temperature_min
+        return self.color_temperature_min
 
     @property
     def min_color_temp_kelvin(self):
-        return self._json_data.attributes.color_temperature_max
+        return self.color_temperature_max
 
     @property
     def color_temp_kelvin(self):
-        return self._json_data.attributes.color_temperature
+        return self.color_temperature
 
     @property
     def hs_color(self):
         return (
-            self._json_data.attributes.color_hue,
-            self._json_data.attributes.color_saturation * 100,
+            self.color_hue,
+            self.color_saturation * 100,
         )
-
-    @property
-    def is_on(self):
-        return self._json_data.attributes.is_on
 
     @property
     def supported_color_modes(self):
@@ -236,16 +198,7 @@ class ikea_bulb(LightEntity):
             logger.error("error encountered running update on : {}".format(self.name))
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
-        
-    async def async_update(self):
-        try:
-            self._json_data = await self.hass.async_add_executor_job(self._hub.get_light_by_id, self._json_data.id)
-            self.set_state()
-        except Exception as ex:
-            logger.error("error encountered running update on : {}".format(self.name))
-            logger.error(ex)
-            raise HomeAssistantError(ex, DOMAIN, "hub_exception")
-        
+            
     async def async_turn_on(self, **kwargs):
         logger.debug("light turn_on...")
         logger.debug(kwargs)

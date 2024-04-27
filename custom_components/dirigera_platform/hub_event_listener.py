@@ -104,6 +104,7 @@ class hub_event_listener(threading.Thread):
                         key_attr = to_snake_case(key)
                         logger.debug(f"setting {key_attr}  to {attributes[key]}")
                         setattr(entity._json_data.attributes,key_attr, attributes[key])
+                        logger.error(entity._json_data)
                     except Exception as ex:
                         logger.warn(f"Failed to set attribute key: {key} converted to {key_attr} on device: {id}")
                         logger.warn(ex)

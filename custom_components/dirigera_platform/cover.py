@@ -8,11 +8,10 @@ from homeassistant.components.cover import (
 )
 from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from homeassistant.core import HomeAssistantError
-from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
 from .mocks.ikea_blinds_mock import ikea_blinds_mock
-from .hub_event_listener import hub_event_listener
+from .base_classes import ikea_base_device
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -37,39 +36,16 @@ async def async_setup_entry(
         blinds = [mock_blind1]
     else:
         hub_blinds = await hass.async_add_executor_job(hub.get_blinds)
-        blinds = [IkeaBlinds(hub, blind) for blind in hub_blinds]
+        blinds = [IkeaBlinds(hass, hub, b) for b in hub_blinds]
 
     logger.debug("Found {} blinds entities to setup...".format(len(blinds)))
     async_add_entities(blinds)
     logger.debug("BLINDS Complete async_setup_entry")
 
-class IkeaBlinds(CoverEntity):
-    def __init__(self, hub, json_data):
+class IkeaBlinds(ikea_base_device, CoverEntity):
+    def __init__(self, hass, hub, json_data):
         logger.debug("IkeaBlinds ctor...")
-        self._hub = hub
-        self._json_data = json_data
-
-    @property
-    def unique_id(self):
-        return self._json_data.id
-
-    @property
-    def available(self):
-        return self._json_data.is_reachable
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        # Register the device for updates
-        hub_event_listener.register(self._json_data.id, self)
-        
-        return DeviceInfo(
-            identifiers={("dirigera_platform", self._json_data.id)},
-            name=self.name,
-            manufacturer=self._json_data.attributes.manufacturer,
-            model=self._json_data.attributes.model,
-            sw_version=self._json_data.attributes.firmware_version,
-            suggested_area=self._json_data.room.name if self._json_data.room is not None else None,
-        )
+        super().__init__(hass, hub, json_data, hub.get_blinds_by_id)
 
     @property
     def device_class(self) -> str:
@@ -84,22 +60,12 @@ class IkeaBlinds(CoverEntity):
         )
 
     @property
-    def name(self):
-        if self._json_data.attributes.custom_name is None or len(self._json_data.attributes.custom_name) == 0:
-            return self.unique_id
-        return self._json_data.attributes.custom_name
-
-    @property
-    def is_on(self):
-        return self._json_data.attributes.is_on
-
-    @property
     def current_cover_position(self):
-        return 100 - self._json_data.attributes.blinds_current_level
+        return 100 - self.blinds_current_level
 
     @property
     def target_cover_position(self):
-        return 100 - self._json_data.attributes.blinds_target_level
+        return 100 - self.blinds_target_level
 
     @property
     def is_closed(self):
