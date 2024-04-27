@@ -14,7 +14,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .icons import to_hass_icon
-from .base_classes import ikea_base_device
+from .common_classes import ikea_base_device
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 

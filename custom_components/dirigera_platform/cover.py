@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistantError
 
 from .const import DOMAIN
 from .mocks.ikea_blinds_mock import ikea_blinds_mock
-from .base_classes import ikea_base_device
+from .common_classes import ikea_base_device
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 

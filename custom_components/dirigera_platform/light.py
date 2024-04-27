@@ -18,7 +18,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS
 from .mocks.ikea_bulb_mock import ikea_bulb_mock
 from .hub_event_listener import hub_event_listener
-from .base_classes import ikea_base_device
+from .common_classes import ikea_base_device
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
