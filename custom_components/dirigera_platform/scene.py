@@ -30,7 +30,7 @@ async def async_setup_entry(
         return
 
     scenes: list[DirigeraScene] = await hass.async_add_executor_job(hub.get_scenes)
-    entities: list[IkeaScene] = [IkeaScene(hub, s) for s in scenes]
+    entities: list[IkeaScene] = [IkeaScene(hass, hub, s) for s in scenes]
     logger.debug("Found %d scenes", len(entities))
     async_add_entities(entities)
 

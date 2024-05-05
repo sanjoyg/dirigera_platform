@@ -100,33 +100,9 @@ class ikea_vindstyrka_device(ikea_base_device):
                 logger.error(ex)
                 raise HomeAssistantError(ex, DOMAIN, "hub_exception")
 
-class ikea_env_base_entity(ikea_base_device_sensor, SensorEntity):
-    def __init__(
-        self, ikea_env_device: ikea_vindstyrka_device, id_suffix: str, name_suffix: str
-    ):
-        logger.debug("ikea_env_base_entity ctor...")
-        super().__init__(ikea_env_device)
-        self._unique_id = self._ikea_env_device.unique_id + id_suffix
-        self._name = self._ikea_env_device.name + " " + name_suffix
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def unique_id(self) -> str:
-        return self._unique_id
-
-    @property
-    def native_value(self):
-        return int
-
-    async def async_update(self):
-        await self._ikea_env_device.async_update()
-
-class ikea_vindstyrka_temperature(ikea_env_base_entity):
-    def __init__(self, ikea_env_device: ikea_vindstyrka_device) -> None:
-        super().__init__(ikea_env_device, "TEMP", "Temperature")
+class ikea_vindstyrka_temperature(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device: ikea_vindstyrka_device) -> None:
+        super().__init__(device, id_suffix="TEMP", name_suffix="Temperature")
         logger.debug("ikea_vindstyrka_temperature ctor...")
 
     @property
@@ -135,7 +111,7 @@ class ikea_vindstyrka_temperature(ikea_env_base_entity):
 
     @property
     def native_value(self) -> float:
-        return self._ikea_env_device.get_current_temperature()
+        return self._device.current_temperature
 
     @property
     def native_unit_of_measurement(self) -> str:
@@ -145,10 +121,10 @@ class ikea_vindstyrka_temperature(ikea_env_base_entity):
     def state_class(self) -> str:
         return "measurement"
 
-class ikea_vindstyrka_humidity(ikea_env_base_entity):
-    def __init__(self, ikea_env_device: ikea_vindstyrka_device) -> None:
+class ikea_vindstyrka_humidity(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device: ikea_vindstyrka_device) -> None:
         logger.debug("ikea_vindstyrka_humidity ctor...")
-        super().__init__(ikea_env_device, "HUM", "Humidity")
+        super().__init__(device, id_suffix="HUM", name_suffix="Humidity")
 
     @property
     def device_class(self):
@@ -156,7 +132,7 @@ class ikea_vindstyrka_humidity(ikea_env_base_entity):
 
     @property
     def native_value(self) -> int:
-        return self._ikea_env_device.get_current_r_h()
+        return self._device.current_r_h
 
     @property
     def native_unit_of_measurement(self) -> str:
@@ -167,9 +143,9 @@ class WhichPM25(Enum):
     MIN = 1
     MAX = 2
 
-class ikea_vindstyrka_pm25(ikea_env_base_entity):
+class ikea_vindstyrka_pm25(ikea_base_device_sensor, SensorEntity):
     def __init__(
-        self, ikea_env_device: ikea_vindstyrka_device, pm25_type: WhichPM25
+        self, device: ikea_vindstyrka_device, pm25_type: WhichPM25
     ) -> None:
         logger.debug("ikea_vindstyrka_pm25 ctor...")
         self._pm25_type = pm25_type
@@ -185,7 +161,7 @@ class ikea_vindstyrka_pm25(ikea_env_base_entity):
             id_suffix = "MINPM25"
             name_suffix = "Min Measured PM2.5"
 
-        super().__init__(ikea_env_device, id_suffix, name_suffix)
+        super().__init__(device, id_suffix=id_suffix, name_suffix=name_suffix)
 
     @property
     def device_class(self):
@@ -194,11 +170,11 @@ class ikea_vindstyrka_pm25(ikea_env_base_entity):
     @property
     def native_value(self) -> int:
         if self._pm25_type == WhichPM25.CURRENT:
-            return self._ikea_env_device.get_current_p_m25()
-        if self._pm25_type == WhichPM25.MAX:
-            return self._ikea_env_device.get_max_measured_p_m25()
-        if self._pm25_type == WhichPM25.MIN:
-            return self._ikea_env_device.get_min_measured_p_m25()
+            return self._device.current_p_m25
+        elif self._pm25_type == WhichPM25.MAX:
+            return self._device.max_measured_p_m25
+        elif self._pm25_type == WhichPM25.MIN:
+            return self._device.min_measured_p_m25
         logger.debug("ikea_vindstyrka_pm25.native_value() shouldnt be here")
         return None
 
@@ -206,10 +182,10 @@ class ikea_vindstyrka_pm25(ikea_env_base_entity):
     def native_unit_of_measurement(self) -> str:
         return "µg/m³"
 
-class ikea_vindstyrka_voc_index(ikea_env_base_entity):
-    def __init__(self, ikea_env_device: ikea_vindstyrka_device) -> None:
+class ikea_vindstyrka_voc_index(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device: ikea_vindstyrka_device) -> None:
         logger.debug("ikea_vindstyrka_voc_index ctor...")
-        super().__init__(ikea_env_device, "VOC", "VOC Index")
+        super().__init__(device, id_suffix="VOC", name_suffix="VOC Index")
 
     @property
     def device_class(self):
@@ -217,7 +193,7 @@ class ikea_vindstyrka_voc_index(ikea_env_base_entity):
 
     @property
     def native_value(self) -> int:
-        return self._ikea_env_device.get_voc_index()
+        return self._device.voc_index
 
     @property
     def native_unit_of_measurement(self) -> str:
@@ -226,7 +202,7 @@ class ikea_vindstyrka_voc_index(ikea_env_base_entity):
 class ikea_controller(ikea_base_device, SensorEntity):
     def __init__(self,hass:core.HomeAssistant, hub:Hub, json_data:Controller):
         logger.debug("ikea_controller ctor...")
-        super().__init__(hass, hub,json_data, hub.get_controller_by_id)
+        super().__init__(hass , hub, json_data, hub.get_controller_by_id)
 
     @property
     def icon(self):
@@ -234,7 +210,7 @@ class ikea_controller(ikea_base_device, SensorEntity):
     
     @property
     def native_value(self):
-        return self._json_data.attributes.battery_percentage
+        return self.battery_percentage
 
     @property
     def native_unit_of_measurement(self) -> str:
