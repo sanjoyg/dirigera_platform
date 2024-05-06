@@ -42,7 +42,7 @@ class IkeaScene(ikea_base_device, Scene):
 
     def __init__(self, hass: HomeAssistant, hub: Hub, dirigera_scene: DirigeraScene) -> None:
         logger.debug("IkeaScena ctor...")
-        super(ikea_base_device).__init__(hass, hub, dirigera_scene, hub.get_scene_by_id)
+        super().__init__(hass, hub, dirigera_scene, hub.get_scene_by_id)
 
     def icon(self) -> str:
         """Return suitable replacement icon."""
