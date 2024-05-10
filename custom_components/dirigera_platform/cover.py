@@ -29,6 +29,7 @@ async def async_setup_entry(
     hub = Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
 
     blinds = []
+    battery_sensors = []
 
     # If mock then start with mocks
     if config[CONF_IP_ADDRESS] == "mock":
@@ -41,10 +42,11 @@ async def async_setup_entry(
         for device in devices:
             blinds.append(IkeaBlinds(device))
             if getattr(device,"battery_percentage",None) is not None:
-                blinds.append(battery_percentage_sensor(device))
+                battery_sensors.append(battery_percentage_sensor(device))
 
     logger.debug("Found {} blinds entities to setup...".format(len(blinds)))
     async_add_entities(blinds)
+    async_add_entities(battery_sensors)
     logger.debug("BLINDS Complete async_setup_entry")
 
 class IkeaBlindsDevice(ikea_base_device):

@@ -123,6 +123,9 @@ class battery_percentage_sensor(ikea_base_device_sensor, SensorEntity):
         return "%"
     
     @property
+    def icon(self):
+        return "mdi:battery"
+    @property
     def name(self) -> str:
         return f"{self._device.name} Battery"
     
