@@ -5,7 +5,7 @@ from typing import Any
 
 from dirigera import Hub
 from dirigera.devices.scene import Scene as DirigeraScene
-from dirigera.devices.scene import Trigger
+from dirigera.devices.scene import Trigger, TriggerDetails
 
 from homeassistant.components.scene import Scene
 from homeassistant.config_entries import ConfigEntry
@@ -28,6 +28,7 @@ async def async_setup_entry(
     hub = Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
 
     Trigger.update_forward_refs()
+    TriggerDetails.update_forward_refs()
 
     # TODO: Add mock scenes
     if config[CONF_IP_ADDRESS] == "mock":
