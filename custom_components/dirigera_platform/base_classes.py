@@ -1,5 +1,5 @@
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
-from homeassistant.helpers.entity import DeviceInfo, Entity
+from homeassistant.helpers.entity import DeviceInfo, Entity, EntityCategory
 from homeassistant.core import HomeAssistantError
 
 from .hub_event_listener import hub_event_listener
@@ -109,7 +109,11 @@ class ikea_base_device_sensor():
 class battery_percentage_sensor(ikea_base_device_sensor, SensorEntity):
     def __init__(self, device):
         super().__init__(device)
-         
+
+    @property
+    def entity_category(self):
+        return EntityCategory.DIAGNOSTIC
+      
     @property
     def unique_id(self):
         return f"{self._device.unique_id}_BP01"

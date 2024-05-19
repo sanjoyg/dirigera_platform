@@ -18,9 +18,9 @@ from homeassistant.helpers.entity import DeviceInfo
 from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS
 from .mocks.ikea_bulb_mock import ikea_bulb_mock
 from .hub_event_listener import hub_event_listener
-from .base_classes import ikea_base_device
 
 logger = logging.getLogger("custom_components.dirigera_platform")
+
 
 async def async_setup_entry(
     hass: core.HomeAssistant,
@@ -50,7 +50,7 @@ async def async_setup_entry(
         lights = [mock_bulb1]
     else:
         hub_lights = await hass.async_add_executor_job(hub.get_lights)
-        all_lights = [ikea_bulb(hass, hub, light) for light in hub_lights]
+        all_lights = [ikea_bulb(hub, light) for light in hub_lights]
         logger.debug("Found {} total of all light entities to setup...".format(len(all_lights)))
         
         device_sets  = {}
@@ -110,15 +110,17 @@ class device_set_model:
         logger.debug(f"Adding {bulb.name} to device_set : {self.name}")
         self._lights.append(bulb)
 
-class ikea_bulb(ikea_base_device, LightEntity):
+class ikea_bulb(LightEntity):
     
-    def __init__(self, hass, hub, json_data) -> None:
+    def __init__(self, hub, json_data) -> None:
         logger.debug("ikea_bulb ctor...")
-        super().__init__(hass, hub, json_data, hub.get_light_by_id)
+        self._hub = hub
+        self._json_data = json_data
         self.set_state()
 
     def set_state(self):
         # Set Color capabilities
+        logger.debug("Set State of bulb..")
         color_modes = []
         can_receive = self._json_data.capabilities.can_receive
         logger.debug("Got can_receive in state")
@@ -156,30 +158,95 @@ class ikea_bulb(ikea_base_device, LightEntity):
         logger.debug(self._supported_color_modes)
         logger.debug("color mode set to:")
         logger.debug(self._color_mode)
+
+    @property
+    def unique_id(self):
+        logger.debug("unique id called...")
+        return self._json_data.id
+
+    @property
+    def available(self):
+        return self._json_data.is_reachable
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        logger.debug("device info called...")
+
+        # Register the device for updates
+        hub_event_listener.register(self._json_data.id, self)
+
+        return DeviceInfo(
+            identifiers={("dirigera_platform", self._json_data.id)},
+            name=self.name,
+            manufacturer=self._json_data.attributes.manufacturer,
+            model=self._json_data.attributes.model,
+            sw_version=self._json_data.attributes.firmware_version,
+            suggested_area=self._json_data.room.name if self._json_data.room is not None else None,
+        )
+
+    @property
+    def name(self):
+        
+        if self._json_data.attributes.custom_name is None or len(self._json_data.attributes.custom_name) == 0:
+            return self.unique_id
+        return self._json_data.attributes.custom_name
     
     @property
     def brightness(self):
-        scaled = int((self._json_data.attributes.light_level / 100) * 255)
+        scaled = int((self.light_level/ 100) * 255)
         return scaled
 
     @property
+    def light_level(self):
+        return self._json_data.attributes.light_level 
+    
+    @light_level.setter
+    def light_level(self, value):
+        self._json_data.attributes.light_level = int((value/255)*100)
+
+    @property
     def max_color_temp_kelvin(self):
-        return self.color_temperature_min
+        return self._json_data.attributes.color_temperature_min
 
     @property
     def min_color_temp_kelvin(self):
-        return self.color_temperature_max
+        return self._json_data.attributes.color_temperature_max
 
     @property
     def color_temp_kelvin(self):
-        return self.color_temperature
+        return self._json_data.attributes.color_temperature
 
     @property
+    def color_temperature(self):
+        return self._json_data.attributes.color_temperature
+    
+    @color_temperature.setter
+    def color_temperature(self, value):
+        self._json_data.attributes.color_temperature = value 
+    
+    @property
     def hs_color(self):
-        return (
-            self.color_hue,
-            self.color_saturation * 100,
-        )
+        return ( self.color_hue, self.color_saturation * 100)
+
+    @property
+    def color_hue(self):
+        return self._json_data.attributes.color_hue 
+    
+    @color_hue.setter
+    def color_hue(self, value) :
+        self.json_data.attributes.color_hue = value 
+    
+    @property
+    def color_saturation(self):
+        return self._json_data.attributes.color_saturation
+    
+    @color_saturation.setter
+    def color_saturation(self, value):
+        self._json_data.attributes.color_saturation = value 
+    
+    @property
+    def is_on(self):
+        return self._json_data.attributes.is_on
 
     @property
     def supported_color_modes(self):
@@ -192,13 +259,24 @@ class ikea_bulb(ikea_base_device, LightEntity):
     # Introduced this for update call from device_set       
     def sync_update(self):
         try:
+            logger.debug("sync update caled..")
             self._json_data = self._hub.get_light_by_id(self._json_data.id)
             self.set_state()
         except Exception as ex:
             logger.error("error encountered running update on : {}".format(self.name))
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
-            
+        
+    async def async_update(self):
+        try:
+            logger.debug("async update caled..")
+            self._json_data = await self.hass.async_add_executor_job(self._hub.get_light_by_id, self._json_data.id)
+            self.set_state()
+        except Exception as ex:
+            logger.error("error encountered running update on : {}".format(self.name))
+            logger.error(ex)
+            raise HomeAssistantError(ex, DOMAIN, "hub_exception")
+        
     async def async_turn_on(self, **kwargs):
         logger.debug("light turn_on...")
         logger.debug(kwargs)
@@ -208,24 +286,25 @@ class ikea_bulb(ikea_base_device, LightEntity):
 
             if ATTR_BRIGHTNESS in kwargs:
                 # brightness requested
-                logger.debug("Request to set brightness...")
                 brightness = int(kwargs[ATTR_BRIGHTNESS])
-                logger.debug("Set brightness : {}".format(brightness))
-                logger.debug(
+                logger.error(
                     "scaled brightness : {}".format(int((brightness / 255) * 100))
                 )
+                # update
+                self._json_data.attributes.light_level = int((brightness / 255) * 100)
+                logger.error(f"Updated light level to {self._json_data.attributes.light_level}")
                 await self.hass.async_add_executor_job(self._json_data.set_light_level,int((brightness / 255) * 100))
 
             if ATTR_COLOR_TEMP_KELVIN in kwargs:
                 # color temp requested
                 # If request is white then brightness is passed
-                logger.debug("Request to set color temp...")
+                logger.error("Request to set color temp...")
                 ct = kwargs[ATTR_COLOR_TEMP_KELVIN]
                 logger.debug("Set CT : {}".format(ct))
                 await self.hass.async_add_executor_job(self._json_data.set_color_temperature,ct)
 
             if ATTR_HS_COLOR in kwargs:
-                logger.debug("Request to set color HS")
+                logger.error("Request to set color HS")
                 hs_tuple = kwargs[ATTR_HS_COLOR]
                 self._color_hue = hs_tuple[0]
                 self._color_saturation = hs_tuple[1] / 100

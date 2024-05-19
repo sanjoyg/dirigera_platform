@@ -14,7 +14,7 @@ logger = logging.getLogger("custom_components.dirigera_platform")
 process_events_from = {
     "motionSensor"    : ["isDetected","isOn"],
     "outlet"          : ["isOn"],
-    "light"           : ["isOn"],
+    "light"           : ["isOn", "lightLevel"],
     "openCloseSensor" : ["isOpen"],
     "waterSensor"     : ["waterLeakDetected"]
 }
@@ -104,10 +104,11 @@ class hub_event_listener(threading.Thread):
                         key_attr = to_snake_case(key)
                         logger.debug(f"setting {key_attr}  to {attributes[key]}")
                         setattr(entity._json_data.attributes,key_attr, attributes[key])
-                        logger.error(entity._json_data)
+                        logger.debug(entity._json_data)
                     except Exception as ex:
                         logger.warn(f"Failed to set attribute key: {key} converted to {key_attr} on device: {id}")
                         logger.warn(ex)
+                        
                 if delegate is not None:
                     delegate.async_schedule_update_ha_state(False)
                 else:
