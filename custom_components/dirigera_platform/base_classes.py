@@ -78,7 +78,7 @@ class ikea_base_device:
     # To ensure state update of hass is cascaded
     def async_schedule_update_ha_state(self, force_refresh:bool = False) -> None:
         for listener in self._listeners:
-            listener.async_schedule_update_ha_state(force_refresh)
+            listener.schedule_update_ha_state(force_refresh)
 
 class ikea_base_device_sensor():
     def __init__(self,  device, id_suffix:str = "", name_suffix:str = ""):
