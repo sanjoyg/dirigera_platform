@@ -2,7 +2,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.helpers.entity import DeviceInfo, Entity, EntityCategory
 from homeassistant.core import HomeAssistantError
 
-from .hub_event_listener import hub_event_listener
+from .hub_event_listener import hub_event_listener, registry_entry
 from .const import DOMAIN
 
 import logging 
@@ -29,6 +29,10 @@ class ikea_base_device:
         # inject properties based on attr
         induce_properties(ikea_base_device, self._json_data.attributes.dict())
         
+        # Register the device for updates
+        if self.should_register_with_listener:
+            hub_event_listener.register(self._json_data.id, registry_entry(self))
+
     def add_listener(self, entity : Entity) -> None:
         self._listeners.append(entity)
 
@@ -47,10 +51,7 @@ class ikea_base_device:
     @property
     def device_info(self) -> DeviceInfo:
         logger.debug(f"device_info called {self.name}")
-        # Register the device for updates
-        if self.should_register_with_listener:
-            hub_event_listener.register(self._json_data.id, self)
-
+        
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
             name=self.name,

@@ -1,13 +1,13 @@
 import threading
 import logging 
 import time 
-from typing import Any 
 import json
 import re 
-from dirigera import Hub 
-
 import websocket
 import ssl
+from typing import Any 
+
+from dirigera import Hub 
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -22,15 +22,44 @@ process_events_from = {
 def to_snake_case(name:str) -> str:
     return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
 
+class registry_entry:
+    def __init__(self, entity:any, cascade_entity:any = None):
+        self._entity = entity
+        self._cascade_entity = cascade_entity 
+    
+    @property
+    def entity(self):
+        return self._entity
+    
+    @property
+    def cascade_entity(self):
+        return self._cascade_entity
+    
+    @cascade_entity.setter
+    def cascade_entity(self, value):
+        self._cascade_entity = value 
+
+    def __str__(self):
+        str =  f"registry_entry: id {self._entity.unique_id}, cascade_entry : "
+        if self._cascade_entity is None :
+            str = str +  "None"
+        else:
+            str = str + f"{self._cascade_entity}"
+        return str
+
 class hub_event_listener(threading.Thread):
     device_registry = {}
 
-    def register(id: str, device: any):
+    def register(id: str, entry: registry_entry):
         if id in hub_event_listener.device_registry:
-            #logger.error(f"duplicate id: {id} requested registration")
             return 
-        hub_event_listener.device_registry[id] = device 
+        hub_event_listener.device_registry[id] = entry 
 
+    def get_registry_entry(id:str) -> registry_entry:
+        if id not in hub_event_listener.device_registry:
+            return None 
+        return hub_event_listener.device_registry[id]
+    
     def __init__(self, hub : Hub):
         super().__init__()
         self._hub : Hub = hub
@@ -73,17 +102,10 @@ class hub_event_listener(threading.Thread):
             if id not in hub_event_listener.device_registry:
                 logger.info(f"discarding message as device for id: {id} not found for msg: {msg}")
                 return 
-            registry_value = hub_event_listener.device_registry[id]
             
-            delegate = None
-            entity = None 
+            registry_value = hub_event_listener.get_registry_entry(id)
+            entity = registry_value.entity 
 
-            if type(registry_value) is list:
-                delegate = registry_value[0]
-                entity = registry_value[1]
-            else:
-                entity = registry_value
-             
             if "isReachable" in info:
                 try:
                     logger.debug(f"Setting {id} reachable as {info['isReachable']}")
@@ -108,11 +130,20 @@ class hub_event_listener(threading.Thread):
                     except Exception as ex:
                         logger.warn(f"Failed to set attribute key: {key} converted to {key_attr} on device: {id}")
                         logger.warn(ex)
-                        
-                if delegate is not None:
-                    delegate.async_schedule_update_ha_state(False)
-                else:
-                    entity.async_schedule_update_ha_state(False)
+                                 
+                # Lights behave odd with hubs when setting attribute one event is generated which
+                # causes brightness or other to toggle so put in a hack to fix that
+                if device_type == "light" and entity.should_ignore_update:
+                    entity.reset_ignore_update()
+                    return 
+                
+                entity.async_schedule_update_ha_state(False)
+                
+                if registry_value.cascade_entity is not None:
+                    # Cascade the update
+                    logger.debug(f"Cascading to cascade entity : {registry_value.cascade_entity.unique_id}")
+                    registry_value.cascade_entity.async_schedule_update_ha_state(False)
+
 
         except Exception as ex:
             logger.error("error processing hub event")
