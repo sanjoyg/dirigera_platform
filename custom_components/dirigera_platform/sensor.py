@@ -11,6 +11,7 @@ from homeassistant import config_entries, core
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from homeassistant.core import HomeAssistantError
+from homeassistant.helpers.entity import EntityCategory
 
 from .const import DOMAIN
 from .base_classes import ikea_base_device, ikea_base_device_sensor
@@ -204,6 +205,10 @@ class ikea_controller(ikea_base_device, SensorEntity):
         logger.debug("ikea_controller ctor...")
         super().__init__(hass , hub, json_data, hub.get_controller_by_id)
 
+    @property
+    def entity_category(self):
+        return EntityCategory.DIAGNOSTIC
+    
     @property
     def icon(self):
         return "mdi:battery"
