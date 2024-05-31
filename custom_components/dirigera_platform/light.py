@@ -272,7 +272,11 @@ class ikea_bulb(LightEntity):
     @property
     def color_mode(self):
         return self._color_mode
-      
+    
+    @color_mode.setter
+    def color_mode(self, value):
+        self._color_mode = value 
+
     async def async_update(self):
         try:
             logger.debug("async update called on bulb..")

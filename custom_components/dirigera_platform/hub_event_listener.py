@@ -14,7 +14,7 @@ logger = logging.getLogger("custom_components.dirigera_platform")
 process_events_from = {
     "motionSensor"    : ["isDetected","isOn"],
     "outlet"          : ["isOn"],
-    "light"           : ["isOn", "lightLevel"],
+    "light"           : ["isOn", "lightLevel", "colorTemperature"],
     "openCloseSensor" : ["isOpen"],
     "waterSensor"     : ["waterLeakDetected"]
 }
@@ -120,7 +120,7 @@ class hub_event_listener(threading.Thread):
                 attributes = info["attributes"]
                 for key in attributes:
                     if key not in to_process_attr:
-                        logger.debug(f"attribute {key} not in list of device type {device_type}, ignoring update...")
+                        logger.debug(f"attribute {key} with value {attributes[key]} not in list of device type {device_type}, ignoring update...")
                         continue
                     try:
                         key_attr = to_snake_case(key)
@@ -137,12 +137,12 @@ class hub_event_listener(threading.Thread):
                     entity.reset_ignore_update()
                     return 
                 
-                entity.async_schedule_update_ha_state(False)
+                entity.schedule_update_ha_state(False)
                 
                 if registry_value.cascade_entity is not None:
                     # Cascade the update
                     logger.debug(f"Cascading to cascade entity : {registry_value.cascade_entity.unique_id}")
-                    registry_value.cascade_entity.async_schedule_update_ha_state(False)
+                    registry_value.cascade_entity.schedule_update_ha_state(False)
 
 
         except Exception as ex:
