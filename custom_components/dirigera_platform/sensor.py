@@ -221,6 +221,10 @@ class ikea_controller(ikea_base_device, SensorEntity):
     def native_unit_of_measurement(self) -> str:
         return "%"
 
+    @property
+    def device_class(self) -> str:
+        return SensorDeviceClass.BATTERY
+    
 # SOMRIG Controllers act differently in the gateway Hub
 # While its one device but two id's are sent back each
 # representing the two buttons on the controler. The id is
