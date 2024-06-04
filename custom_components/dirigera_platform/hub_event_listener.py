@@ -135,6 +135,7 @@ class hub_event_listener(threading.Thread):
                 # causes brightness or other to toggle so put in a hack to fix that
                 if device_type == "light" and entity.should_ignore_update:
                     entity.reset_ignore_update()
+                    logger.debug("Ignoring calling update_ha_state as ignore_update is set")
                     return 
                 
                 entity.schedule_update_ha_state(False)

@@ -210,16 +210,24 @@ class ikea_bulb(LightEntity):
     
     @property
     def brightness(self):
+        # This is called by HASS so should be in the range
+        # of 0-100
         scaled = int((self.light_level/ 100) * 255)
         return scaled
 
     @property
     def light_level(self):
+        # This is the state of the HUB so in 1-255 range
         return self._json_data.attributes.light_level 
     
     @light_level.setter
     def light_level(self, value):
-        self._json_data.attributes.light_level = int((value/255)*100)
+        scaled = int((value/255)*100)
+        if scaled < 1:
+            scaled = 0
+        elif scaled > 100:
+            scaled = 100
+        self._json_data.attributes.light_level = scaled
 
     @property
     def max_color_temp_kelvin(self):
@@ -292,17 +300,17 @@ class ikea_bulb(LightEntity):
         logger.debug(kwargs)
 
         try:
+            # Probably change
+            self.reset_ignore_update()
             await self.hass.async_add_executor_job(self._json_data.set_light,True)
 
             if ATTR_BRIGHTNESS in kwargs:
                 # brightness requested
-                brightness = int(kwargs[ATTR_BRIGHTNESS])
-                logger.debug("scaled brightness : {}".format(int((brightness / 255) * 100)))
+                # The setter will move the HASS value of 0-100 to 1-255
+                self.light_level = int(kwargs[ATTR_BRIGHTNESS])
+                logger.debug("scaled brightness : {}".format(self.light_level))
                 # update
-                self.light_level = brightness # scaling will be dne
                 await self.hass.async_add_executor_job(self._json_data.set_light_level,self.light_level)
-                #await self.hass.async_add_executor_job(self._json_data.set_light_level, self._json_data.attributes.light_level)
-                #self._json_data.set_light_level(self._json_data.attributes.light_level)
                 self._ignore_update = True 
 
             if ATTR_COLOR_TEMP_KELVIN in kwargs:
@@ -453,11 +461,16 @@ class ikea_bulb_device_set(LightEntity):
 
             if ATTR_BRIGHTNESS in kwargs:
                 # brightness requested
+                # the brightness sent by HASS will be in the range of 0-100 which has to be scaled
+                # to 1-255
+
                 logger.debug("Request to device_set set brightness...")
-                brightness = int(kwargs[ATTR_BRIGHTNESS])
-                logger.debug("Set brightness : {}".format(brightness))
-                logger.debug("Set scaled brightness : {}".format(int((brightness / 255) * 100)))
-                await self.hass.async_add_executor_job(self.patch_command, {"lightLevel" : int((brightness / 255) * 100)})
+                level = int(kwargs[ATTR_BRIGHTNESS])
+
+                # This is in the 1-100 level so scale it 
+                logger.debug("Set brightness : {}".format(level))
+                logger.debug("Set scaled brightness : {}".format(int((level / 255) * 100)))
+                await self.hass.async_add_executor_job(self.patch_command, {"lightLevel" : int((level / 255) * 100)})
                 self._controller._ignore_update = True 
 
             if ATTR_COLOR_TEMP_KELVIN in kwargs:
