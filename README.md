@@ -13,6 +13,7 @@ Supports
 * STARKVIND AirPurifier
 * VALLHORN Motion Sensors
 * Scenes
+* BADRING Water Leak sensor:
 
 ## Pre-requisite
 1. Identify the IP of the gateway - Usually looking at the client list in your home router interface will give that.
