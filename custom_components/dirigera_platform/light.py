@@ -340,7 +340,9 @@ class ikea_bulb(LightEntity):
     async def async_turn_off(self, **kwargs):
         logger.debug("light turn_off...")
         try:
+            self.reset_ignore_update()
             await self.hass.async_add_executor_job(self._json_data.set_light,False)
+            self.async_schedule_update_ha_state(False)
         except Exception as ex:
             logger.error("error encountered turning off : {}".format(self.name))
             logger.error(ex)
@@ -457,6 +459,7 @@ class ikea_bulb_device_set(LightEntity):
         logger.debug(kwargs)
 
         try:
+            self._controller.reset_ignore_update()
             await self.hass.async_add_executor_job(self.patch_command,{"isOn": True})
 
             if ATTR_BRIGHTNESS in kwargs:
@@ -488,6 +491,7 @@ class ikea_bulb_device_set(LightEntity):
                 self._color_hue = hs_tuple[0]
                 self._color_saturation = hs_tuple[1] / 100
                 # Saturation is 0 - 1 at IKEA
+                self._controller._ignore_update = True 
                 
                 await self.hass.async_add_executor_job(self.patch_command,{ "colorHue" : self._color_hue, "colorSaturation" : self._color_saturation})
 
@@ -497,6 +501,7 @@ class ikea_bulb_device_set(LightEntity):
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
 
     async def async_turn_off(self, **kwargs):
+        self._controller.reset_ignore_update()
         logger.debug("light device_set turn_off...")
         try:
             await self.hass.async_add_executor_job(self.patch_command, {"isOn": False})
@@ -504,4 +509,3 @@ class ikea_bulb_device_set(LightEntity):
             logger.error("error encountered turning off device_set : {}".format(self.name))
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
-        
