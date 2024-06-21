@@ -115,7 +115,7 @@ class hub_event_listener(threading.Thread):
                     logger.error(ex)
 
             to_process_attr = process_events_from[device_type]
-            
+            turn_on_off = False 
             if "attributes" in info:
                 attributes = info["attributes"]
                 for key in attributes:
@@ -124,6 +124,9 @@ class hub_event_listener(threading.Thread):
                         continue
                     try:
                         key_attr = to_snake_case(key)
+                        # This is a hack need a better impl
+                        if key_attr == "is_on":
+                            turn_on_off = True 
                         logger.debug(f"setting {key_attr}  to {attributes[key]}")
                         setattr(entity._json_data.attributes,key_attr, attributes[key])
                         logger.debug(entity._json_data)
@@ -133,7 +136,8 @@ class hub_event_listener(threading.Thread):
                                  
                 # Lights behave odd with hubs when setting attribute one event is generated which
                 # causes brightness or other to toggle so put in a hack to fix that
-                if device_type == "light" and entity.should_ignore_update:
+                # if its is_on attribute then ignore this routine
+                if device_type == "light" and entity.should_ignore_update and not turn_on_off:
                     entity.reset_ignore_update()
                     logger.debug("Ignoring calling update_ha_state as ignore_update is set")
                     return 

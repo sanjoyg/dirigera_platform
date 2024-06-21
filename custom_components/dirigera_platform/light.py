@@ -224,7 +224,7 @@ class ikea_bulb(LightEntity):
     def light_level(self, value):
         scaled = int((value/255)*100)
         if scaled < 1:
-            scaled = 0
+            scaled = 1
         elif scaled > 100:
             scaled = 100
         self._json_data.attributes.light_level = scaled
