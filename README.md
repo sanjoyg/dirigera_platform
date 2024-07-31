@@ -19,6 +19,8 @@ Supports
 1. Identify the IP of the gateway - Usually looking at the client list in your home router interface will give that.
 
 ## Installing
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sanjoyg&repository=dirigera_platform&category=integration)
+
 - Like all add-on installation goto the "HACS" option in the left menu bar in home assistant
 - Select Integration and add custom repository and enter this repositoy
 
