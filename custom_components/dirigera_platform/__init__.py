@@ -97,26 +97,9 @@ async def async_setup_entry(
     hass.data[DOMAIN][entry.entry_id] = hass_data
 
     # Setup the entities
+    setup_domains = ["switch", "binary_sensor", "light", "sensor", "cover", "fan", "scene"]
     hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "switch")
-    )
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "binary_sensor")
-    )
-    
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "light")
-    )
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "sensor")
-    )
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "cover")
-    )
-    hass.async_create_task(hass.config_entries.async_forward_entry_setup(entry, "fan"))
-
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "scene")
+        hass.config_entries.async_forward_entry_setups(entry, setup_domains)
     )
 
     # Now lets start the event listender too
