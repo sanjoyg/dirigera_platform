@@ -146,7 +146,7 @@ class ikea_starkvind_air_purifier_device(ikea_base_device):
         self._updated_at = None
 
     @property
-    def supported_features(self):
+    def supported_features(self) -> FanEntityFeature:
         return FanEntityFeature.PRESET_MODE | FanEntityFeature.SET_SPEED
 
     @property
@@ -197,6 +197,10 @@ class ikea_starkvind_air_purifier_device(ikea_base_device):
         logger.debug("set_fan_mode : {}".format(preset_mode.value))
         await self._hass.async_add_executor_job(self._json_data.set_fan_mode, preset_mode)
 
+    def set_fan_mode(self, preset_mode: FanModeEnum) -> None:
+        logger.debug("set_fan_mode : {}".format(preset_mode.value))
+        self._hass.async_add_executor_job(self._json_data.set_fan_mode, preset_mode)
+    
     async def async_set_preset_mode(self, preset_mode: str):
         logger.debug("set_preset_mode : {}".format(preset_mode))
         mode_to_set = None
@@ -210,9 +214,10 @@ class ikea_starkvind_air_purifier_device(ikea_base_device):
             mode_to_set = FanModeEnum.LOW
         elif preset_mode == "off":
             mode_to_set = FanModeEnum.OFF
-        logger.error(f"Asked to set preset {preset_mode}")
+        logger.debug(f"Asked to set preset {preset_mode}")
         if mode_to_set is None:
             logger.error("Non defined preset used to set : {}".format(preset_mode))
+            self.preset_mode = mode_to_set
             return
 
         logger.debug("set_preset_mode equated to : {}".format(mode_to_set.value))
@@ -266,12 +271,19 @@ class ikea_starkvind_air_purifier_fan(ikea_base_device_sensor, FanEntity):
     def speed_count(self):
         return 50
 
+    @property
+    def supported_features(self) -> FanEntityFeature:
+        return FanEntityFeature.PRESET_MODE | FanEntityFeature.SET_SPEED
+    
     async def async_set_percentage(self, percentage: int) -> None:
         await self._device.async_set_percentage(percentage)
 
     async def async_set_preset_mode(self, preset_mode: str):
         await self._device.async_set_preset_mode(preset_mode)
 
+    async def async_set_fan_mode(self, preset_mode: FanModeEnum) -> None:
+        await self._device.async_set_fan_mode(preset_mode)
+        
     async def async_turn_on(self, percentage=None, preset_mode=None) -> None:
         await self._device.async_turn_on(percentage, preset_mode)
 
