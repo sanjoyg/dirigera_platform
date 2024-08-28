@@ -221,7 +221,7 @@ class ikea_starkvind_air_purifier_device(ikea_base_device):
             return
 
         logger.debug("set_preset_mode equated to : {}".format(mode_to_set.value))
-        await self._hass.async_add_executor_job(self.set_fan_mode, mode_to_set)
+        await self._hass.async_add_executor_job(self.async_set_fan_mode, mode_to_set)
 
     async def async_turn_on(self, percentage=None, preset_mode=None) -> None:
         logger.debug(
