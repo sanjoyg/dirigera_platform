@@ -3,6 +3,7 @@ from enum import Enum
 import logging
 
 from dirigera import Hub
+from .dirigera_lib_patch import HubX
 from dirigera.devices.environment_sensor import EnvironmentSensor
 from dirigera.devices.controller import Controller
 
@@ -27,7 +28,7 @@ async def async_setup_entry(
     config = hass.data[DOMAIN][config_entry.entry_id]
     logger.debug(config)
 
-    hub = Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
+    hub = HubX(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
 
     env_devices = []
     controller_devices = []

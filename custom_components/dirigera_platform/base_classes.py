@@ -11,7 +11,7 @@ logger = logging.getLogger("custom_components.dirigera_platform")
 
 def induce_properties(class_to_induce, attr):
     for key in attr.keys():
-            logger.debug(f"Inducing class {class_to_induce.__name__} property {key}")
+            logger.debug(f"Inducing class {class_to_induce.__name__} property {key} : value {attr[key]}")
             make_property(class_to_induce, key, attr[key])
 
 def make_property(class_to_induce, name, value):
