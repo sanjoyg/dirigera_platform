@@ -5,12 +5,13 @@ import asyncio
 import logging
 
 from dirigera import Hub 
+from dirigera.devices.scene import Scene as DirigeraScene
 
 import voluptuous as vol
 
 from homeassistant import config_entries, core
 from homeassistant.components.light import PLATFORM_SCHEMA
-from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
+from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN, CONF_ENTITY_ID, CONF_TYPE
 
 # Import the device class from the component that you want to support
 from homeassistant.core import HomeAssistant
@@ -34,9 +35,10 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 hub_events = None 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    logger.debug("Starting async_setup...")
-    logger.debug(config)
-    logger.debug("Complete async_setup...")
+    logger.error("Starting async_setup...")
+    for k in config.keys():
+        logger.error(f"config key: {k} value: {config[k]}")
+    logger.error("Complete async_setup...")
 
     def handle_dump_data(call):
         import dirigera
@@ -68,9 +70,9 @@ async def async_setup_entry(
 ) -> bool:
     global hub_events
     """Set up platform from a ConfigEntry."""
-    logger.debug("Staring async_setup_entry in init...")
-    logger.debug(dict(entry.data))
-
+    logger.error("Staring async_setup_entry in init...")
+    logger.error(dict(entry.data))
+    logger.error(f"async_setup_entry {entry.unique_id} {entry.state} {entry.entry_id} {entry.title} {entry.domain}")
     hass.data.setdefault(DOMAIN, {})
     hass_data = dict(entry.data)
 
@@ -106,7 +108,7 @@ async def async_setup_entry(
     hub = Hub(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
     
     if hass_data[CONF_IP_ADDRESS] != "mock":
-        hub_events = hub_event_listener(hub)
+        hub_events = hub_event_listener(hub, hass)
         hub_events.start()
 
     logger.debug("Complete async_setup_entry...")
@@ -121,7 +123,6 @@ async def options_update_listener(
     """Handle options update."""
     await hass.config_entries.async_reload(config_entry.entry_id)
 
-
 async def async_unload_entry(
     hass: core.HomeAssistant, entry: config_entries.ConfigEntry
 ) -> bool:
@@ -134,6 +135,20 @@ async def async_unload_entry(
         hub_events.stop()
         hub_events = None 
 
+    hass_data = dict(entry.data)
+    hub = Hub(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
+    
+    # For each controller if there is an empty scene delete it
+    logger.error("In unload so forcing delete of scenes...")
+    scenes: list[DirigeraScene] = await hass.async_add_executor_job(hub.get_scenes)
+    for scene in scenes:
+        if scene.info.name is None or not scene.info.name.startswith("dirigera_platform_empty_scene_"):
+            logger.error(f"Ignoring scene : {scene.info.name}, as not empty scene")
+            continue
+        logger.error(f"Deleting scene {scene.id}...")
+        await hass.async_add_executor_job(hass.delete_scene,scene.id)
+    logger.error("Done deleting scene....")
+    
     """Unload a config entry."""
     unload_ok = all(
         [

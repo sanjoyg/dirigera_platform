@@ -24,6 +24,7 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Create scene entities from Dirigera scene."""
+    logger.debug("async_setup_entry for scenes...")
     config = hass.data[DOMAIN][entry.entry_id]
     hub = Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
 
@@ -35,8 +36,9 @@ async def async_setup_entry(
         return
 
     scenes: list[DirigeraScene] = await hass.async_add_executor_job(hub.get_scenes)
+    logger.error(f"Found {len(scenes)} scenes...")
     entities: list[IkeaScene] = [IkeaScene(hub, s) for s in scenes]
-    logger.debug("Found %d scenes", len(entities))
+    logger.error("Found %d scenes", len(entities))
     async_add_entities(entities)
 
 

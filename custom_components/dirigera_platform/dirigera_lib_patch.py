@@ -22,6 +22,20 @@ class HubX(Hub):
         devices = self.get("/devices")
         controllers = list(filter(lambda x: x["type"] == "controller", devices))
         return [dict_to_controller(controller, self) for controller in controllers]
+    
+    def create_empty_scene(self, name:str):
+        data = {
+            "info": { "name" : name , "icon" : "scenes_trophy"},
+            "type": "customScene",
+            "triggers": [],
+            "actions": []
+        }
+        
+        #data = camelize_dict(data)  # type: ignore
+        response_dict = self.post(
+            "/scenes",
+            data=data,
+        )
 
 class ControllerAttributesX(Attributes):
     is_on: Optional[bool] = None

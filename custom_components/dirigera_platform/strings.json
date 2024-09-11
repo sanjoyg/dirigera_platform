@@ -28,5 +28,18 @@
           "description": "Update IKEA Dirigera Hub Setting..."
         }
       }
-    }
+    },
+    "device_automation": {
+      "trigger_type": {
+        "single_click": "{entity_name} Single Click",
+        "long_press": "{entity_name} Long Press",
+        "double_click": "{entity_name} Double Click",
+        "button1_single_click": "{entity_name} Button 1 Single Click",
+        "button1_long_press": "{entity_name} Button 1 Long Press",
+        "button1_double_click": "{entity_name} Button 1 Double Click",
+        "button2_single_click": "{entity_name} Button 2 Single Click",
+        "button2_long_press": "{entity_name} Button 2 Long Press",
+        "button2_double_click": "{entity_name} Button 2 Double Click"
+      }
+   }
   }

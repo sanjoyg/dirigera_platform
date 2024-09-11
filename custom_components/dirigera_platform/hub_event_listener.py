@@ -5,9 +5,13 @@ import json
 import re 
 import websocket
 import ssl
+import re
 from typing import Any 
 
 from dirigera import Hub 
+from .const import DOMAIN
+
+from homeassistant.const import ATTR_ENTITY_ID 
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -60,14 +64,96 @@ class hub_event_listener(threading.Thread):
             return None 
         return hub_event_listener.device_registry[id]
     
-    def __init__(self, hub : Hub):
+    def __init__(self, hub : Hub, hass):
         super().__init__()
         self._hub : Hub = hub
         self._request_to_stop = False 
+        self._hass = hass 
 
     def on_error(self, ws:Any, ws_msg:str):
         logger.debug(f"on_error hub event listener {ws_msg}")
     
+    def parse_scene_update(self, msg):
+        # Verify that this is controller initiated
+        if "data" not in msg:
+            logger.error(f"discarding message as key 'data' not found: {msg}")
+            return 
+        
+        if "triggers" not in msg["data"]:
+            logger.error(f"discarding message as key 'data/triggers'")
+            return 
+        
+        triggers = msg["data"]["triggers"]
+        
+        for trigger in triggers:
+            if "type" not in trigger:
+                logger.error(f"key 'type' not in trigger json : {trigger}")
+                continue
+            
+            if trigger["type"] != "controller":
+                continue
+            
+            if "trigger" not in trigger:
+                logger.error(f"key 'trigger' not found in trigger json: {trigger}")
+                continue 
+            
+            details = trigger["trigger"]
+            
+            if "controllerType" not in details or "clickPattern" not in details or "deviceId" not in details:
+                logger.error(f"Required key controllerType/clickPattern/deviceId not in trigger json : {trigger}")
+                continue  
+            
+            controller_type = details["controllerType"]
+            click_pattern = details["clickPattern"]
+            device_id = details["deviceId"]
+            
+            if controller_type != "shortcutController":
+                logger.error(f"controller type on message not compatible {controller_type}, ignoring...")
+                continue 
+            
+            if click_pattern == "singlePress":
+                trigger_type = "single_click"
+            elif click_pattern == "longPress":
+                trigger_type = "long_press"
+            elif click_pattern == "double_click":
+                trigger_type == "double_click"
+            else:
+                logger.error(f"click_pattern : {click_pattern} not in list of types...ignoring")
+                continue
+            
+            device_id_for_registry = device_id
+             
+            button_idx = 0
+            pattern = '(([0-9]|[a-z]|-)*)_([0-9])+'
+            match = re.search(pattern, device_id)
+            if match is not None:
+                device_id_for_registry = f"{match.groups()[0]}_1"
+                button_idx = int(match.groups()[2])
+                logger.error(f"Multi button controller, device_id effective : {device_id_for_registry} with buttons : {button_idx}")
+                
+            if button_idx != 0:
+                trigger_type =f"button{button_idx}_{trigger_type}"
+            
+            # Now look up the associated entity in our own registry
+            registry_value = hub_event_listener.get_registry_entry(device_id_for_registry)
+            
+            if registry_value.__class__.__name__ != "registry_entry":
+                logger.error(f"id : {device_id_for_registry} listener registry is not correct : {registry_value.__class__.__name__}...")
+                continue
+            
+            entity  = registry_value.entity
+            
+            # Now raise the bus event
+            event_data = {
+                "type": trigger_type,
+                "device_id": entity.registry_entry.device_id,
+                ATTR_ENTITY_ID: entity.registry_entry.entity_id
+            }    
+            
+            self._hass.bus.async_fire(event_type="dirigera_platform_event",event_data=event_data)
+            logger.error(f"Event fired.. {event_data}")
+            logger.error(f"{self.registry_entry}")
+            
     def on_message(self, ws:Any, ws_msg:str):
         
         try:

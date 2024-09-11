@@ -6,6 +6,7 @@ from dirigera import Hub
 from .dirigera_lib_patch import HubX
 from dirigera.devices.environment_sensor import EnvironmentSensor
 from dirigera.devices.controller import Controller
+from dirigera.devices.scene import Info, Icon
 
 from homeassistant.helpers.entity import Entity
 from homeassistant import config_entries, core
@@ -25,6 +26,10 @@ async def async_setup_entry(
 ):
     logger.debug("EnvSensor & Controllers Starting async_setup_entry")
     """Setup sensors from a config entry created in the integrations UI."""
+    logger.error("Staring async_setup_entry in SENSOR...")
+    logger.error(dict(config_entry.data))
+    logger.error(f"async_setup_entry SENSOR {config_entry.unique_id} {config_entry.state} {config_entry.entry_id} {config_entry.title} {config_entry.domain}")
+    
     config = hass.data[DOMAIN][config_entry.entry_id]
     logger.debug(config)
 
@@ -57,6 +62,7 @@ async def async_setup_entry(
         ]
 
         hub_controllers = await hass.async_add_executor_job(hub.get_controllers)
+        logger.error(f"Got {len(hub_controllers)} controllers...")
         controller_devices = [
             ikea_controller(hass, hub, controller_device)
             for controller_device in hub_controllers
@@ -64,6 +70,17 @@ async def async_setup_entry(
             # This is not the case of the second device for SOMRIG controllers
             if controller_device.attributes.battery_percentage
         ]
+        
+        for controller in controller_devices:
+            # Hack to create empty scene so that we can associate it the controller
+            # so that click of buttons on the controller can generate events on the hub
+            #hub.create(name=f"dirigera_platform_empty_scene_{controller.unique_id}",icon="scenes_heart")
+            scene_name=f"dirigera_platform_empty_scene_{controller.unique_id}"
+            #scene_info.name = f"dirigera_platform_empty_scene_{controller.unique_id}"
+            #scene_info.icon = "scenes_heart"
+            logger.error(f"Creating empty scene {scene_name} for controller...")
+            await hass.async_add_executor_job(hub.create_empty_scene,scene_name)
+        
 
     env_sensors = []
     for env_device in env_devices:
@@ -201,9 +218,22 @@ class ikea_vindstyrka_voc_index(ikea_base_device_sensor, SensorEntity):
     def native_unit_of_measurement(self) -> str:
         return "µg/m³"
 
+# SOMRIG Controllers act differently in the gateway Hub
+# While its one device but two id's are sent back each
+# representing the two buttons on the controler. The id is
+# all same except _1 and _2 suffix. The serial number on the
+# controllers is same.
+
+CONTROLLER_BUTTON_MAP = { "SOMRIG shortcut button" : 2 }
+
 class ikea_controller(ikea_base_device, SensorEntity):
     def __init__(self,hass:core.HomeAssistant, hub:Hub, json_data:Controller):
         logger.debug("ikea_controller ctor...")
+        self._buttons = 1
+        if json_data.attributes.model in CONTROLLER_BUTTON_MAP:
+            self._buttons = CONTROLLER_BUTTON_MAP[json_data.attributes.model]
+            logger.error(f"Set #buttons to {self._buttons} as controller model is : {json_data.attributes.model}")
+        
         super().__init__(hass , hub, json_data, hub.get_controller_by_id)
 
     @property
@@ -225,9 +255,10 @@ class ikea_controller(ikea_base_device, SensorEntity):
     @property
     def device_class(self) -> str:
         return SensorDeviceClass.BATTERY
+
+    @property
+    def number_of_buttons(self) -> int:
+        return self._buttons
     
-# SOMRIG Controllers act differently in the gateway Hub
-# While its one device but two id's are sent back each
-# representing the two buttons on the controler. The id is
-# all same except _1 and _2 suffix. The serial number on the
-# controllers is same.
+    async def async_update(self):  
+        pass
