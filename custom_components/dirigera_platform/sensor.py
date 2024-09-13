@@ -63,25 +63,26 @@ async def async_setup_entry(
 
         hub_controllers = await hass.async_add_executor_job(hub.get_controllers)
         logger.error(f"Got {len(hub_controllers)} controllers...")
-        controller_devices = [
-            ikea_controller(hass, hub, controller_device)
-            for controller_device in hub_controllers
-            # Only create a battery sensor entity if the device reports battery percentage
-            # This is not the case of the second device for SOMRIG controllers
-            if controller_device.attributes.battery_percentage
-        ]
         
-        for controller in controller_devices:
+        # Controllers with more one button are returned as spearate controllers
+        # their uniqueid has _1, _2 suffixes. Only the primary controller has 
+        # battery % attribute which we shall use to identify
+        controller_devices = []
+        
+        for controller_device in hub_controllers:
+            controller : ikea_controller = ikea_controller(hass, hub, controller_device)
+            
             # Hack to create empty scene so that we can associate it the controller
             # so that click of buttons on the controller can generate events on the hub
             #hub.create(name=f"dirigera_platform_empty_scene_{controller.unique_id}",icon="scenes_heart")
+            
             scene_name=f"dirigera_platform_empty_scene_{controller.unique_id}"
-            #scene_info.name = f"dirigera_platform_empty_scene_{controller.unique_id}"
-            #scene_info.icon = "scenes_heart"
-            logger.error(f"Creating empty scene {scene_name} for controller...")
-            await hass.async_add_executor_job(hub.create_empty_scene,scene_name)
-        
-
+            logger.error(f"Creating empty scene {scene_name} for controller {controller.unique_id}...")
+            await hass.async_add_executor_job(hub.create_empty_scene,scene_name, controller.unique_id)
+            
+            if controller_device.attributes.battery_percentage :
+                controller_devices.append(controller)
+            
     env_sensors = []
     for env_device in env_devices:
         # For each device setup up multiple entities

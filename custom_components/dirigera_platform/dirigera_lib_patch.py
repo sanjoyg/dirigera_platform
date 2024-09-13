@@ -1,10 +1,9 @@
 from __future__ import annotations
-
 from typing import Any, Dict, List, Optional
+from typing import Any, Optional, Dict
 
 from dirigera import Hub
 
-from typing import Any, Optional, Dict
 from dirigera.devices.device import Attributes, Device
 from dirigera.hub.abstract_smart_home_hub import AbstractSmartHomeHub
 
@@ -23,15 +22,23 @@ class HubX(Hub):
         controllers = list(filter(lambda x: x["type"] == "controller", devices))
         return [dict_to_controller(controller, self) for controller in controllers]
     
-    def create_empty_scene(self, name:str):
+    def create_empty_scene_for_controller(self, name:str, controller_id: str):
         data = {
             "info": { "name" : name , "icon" : "scenes_trophy"},
             "type": "customScene",
-            "triggers": [],
+            "triggers": [ { 
+                    "type" : "controller", 
+                    "disabled": False, 
+                    "trigger": {
+                        "controllerType" : "shortcutController",
+                        "buttonIndex" : 0,
+                        "device_id" : controller_id
+                    }
+                }
+            ],
             "actions": []
         }
         
-        #data = camelize_dict(data)  # type: ignore
         response_dict = self.post(
             "/scenes",
             data=data,
@@ -41,7 +48,6 @@ class ControllerAttributesX(Attributes):
     is_on: Optional[bool] = None
     battery_percentage: Optional[int] = None
     switch_label: Optional[str] = None
-
 
 class ControllerX(Device):
     dirigera_client: AbstractSmartHomeHub
@@ -60,7 +66,6 @@ class ControllerX(Device):
         data = [{"attributes": {"customName": name}}]
         self.dirigera_client.patch(route=f"/devices/{self.id}", data=data)
         self.attributes.custom_name = name
-
 
 def dict_to_controller(
     data: Dict[str, Any], dirigera_client: AbstractSmartHomeHub
