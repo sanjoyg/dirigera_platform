@@ -22,7 +22,7 @@ class HubX(Hub):
         controllers = list(filter(lambda x: x["type"] == "controller", devices))
         return [dict_to_controller(controller, self) for controller in controllers]
     
-    def create_empty_scene_for_controller(self, name:str, controller_id: str):
+    def create_empty_scene(self, name:str, controller_id: str):
         data = {
             "info": { "name" : name , "icon" : "scenes_trophy"},
             "type": "customScene",
