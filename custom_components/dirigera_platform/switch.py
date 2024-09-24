@@ -34,7 +34,7 @@ async def async_setup_entry(
         mock_outlet1 = ikea_outlet_mock(hub, "mock_outlet1")
         outlets = [mock_outlet1]
     else:
-        hub_outlets : list[Outlet]  = await hass.async_add_executor_job(hub.get_outlets)
+        hub_outlets: list[Outlet] = await hass.async_add_executor_job(hub.get_outlets)
         outlets = [ikea_outlet(hass, hub, outlet) for outlet in hub_outlets]
 
     logger.debug("Found {} outlet entities to setup...".format(len(outlets)))
@@ -62,3 +62,37 @@ class ikea_outlet(ikea_base_device, SwitchEntity):
             logger.error("error encountered turning off : {}".format(self.name))
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
+        
+    @property
+    def is_on(self):
+        return self._json_data.attributes.is_on
+
+    @property
+    def icon(self):
+        return "mdi:power-plug"
+
+    @property
+    def device_info(self):
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.unique_id)},
+            name=self.name,
+            manufacturer="IKEA",
+            model=self._json_data.attributes.model,
+            sw_version=self._json_data.attributes.firmware_version,
+        )
+    
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        non_sensor_attributes = {
+            "custom_name": getattr(self._json_data.attributes, 'custom_name', None),
+            "model": getattr(self._json_data.attributes, 'model', None),
+            "manufacturer": getattr(self._json_data.attributes, 'manufacturer', None),
+            "firmware_version": getattr(self._json_data.attributes, 'firmware_version', None),
+            "hardware_version": getattr(self._json_data.attributes, 'hardware_version', None),
+            "serial_number": getattr(self._json_data.attributes, 'serial_number', None),
+            "product_code": getattr(self._json_data.attributes, 'product_code', None),
+            "ota_status": getattr(self._json_data.attributes, 'ota_status', None),
+            "ota_state": getattr(self._json_data.attributes, 'ota_state', None),
+        }
+        return non_sensor_attributes
