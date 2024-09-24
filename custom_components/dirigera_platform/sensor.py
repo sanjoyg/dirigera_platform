@@ -3,12 +3,13 @@ from enum import Enum
 import logging
 
 from dirigera import Hub
+from dirigera.devices.outlet import Outlet
+
+from .switch import ikea_outlet
 from .dirigera_lib_patch import HubX
 from dirigera.devices.environment_sensor import EnvironmentSensor
 from dirigera.devices.controller import Controller
-from dirigera.devices.scene import Info, Icon
 
-from homeassistant.helpers.entity import Entity
 from homeassistant import config_entries, core
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
@@ -70,7 +71,7 @@ async def async_setup_entry(
         controller_devices = []
         
         for controller_device in hub_controllers:
-            controller : ikea_controller = ikea_controller(hass, hub, controller_device)
+            controller: ikea_controller = ikea_controller(hass, hub, controller_device)
             
             # Hack to create empty scene so that we can associate it the controller
             # so that click of buttons on the controller can generate events on the hub
@@ -80,7 +81,7 @@ async def async_setup_entry(
             logger.error(f"Creating empty scene {scene_name} for controller {controller.unique_id}...")
             await hass.async_add_executor_job(hub.create_empty_scene,scene_name, controller.unique_id)
             
-            if controller_device.attributes.battery_percentage :
+            if controller_device.attributes.battery_percentage:
                 controller_devices.append(controller)
             
     env_sensors = []
@@ -93,12 +94,30 @@ async def async_setup_entry(
         env_sensors.append(ikea_vindstyrka_pm25(env_device, WhichPM25.MIN))
         env_sensors.append(ikea_vindstyrka_voc_index(env_device))
 
+
+    outlet_sensors = []
+    if config[CONF_IP_ADDRESS] != "mock":
+        hub_outlets: list[Outlet] = await hass.async_add_executor_job(hub.get_outlets)
+        for outlet in hub_outlets:
+            if outlet.attributes.model == "INSPELNING Smart plug":
+                outlet_entity = ikea_outlet(hass, hub, outlet)
+                outlet_sensors.extend([
+                    ikea_outlet_energy_consumed(outlet_entity),
+                    ikea_outlet_current_active_power(outlet_entity),
+                    ikea_outlet_current_amps(outlet_entity),
+                    ikea_outlet_current_voltage(outlet_entity),
+                    ikea_outlet_total_energy_consumed_last_updated(outlet_entity),
+                    ikea_outlet_time_of_last_energy_reset(outlet_entity)
+                ])
+
     logger.debug("Found {} env devices to setup...".format(len(env_devices)))
     logger.debug("Found {} env entities to setup...".format(len(env_sensors)))
     logger.debug("Found {} controller devices to setup...".format(len(controller_devices)))
+    logger.debug("Found {} outlet entities to setup...".format(len(outlet_sensors)))
 
     async_add_entities(env_sensors)
     async_add_entities(controller_devices)
+    async_add_entities(outlet_sensors)
 
     logger.debug("EnvSensor & Controllers Complete async_setup_entry")
 
@@ -263,3 +282,95 @@ class ikea_controller(ikea_base_device, SensorEntity):
     
     async def async_update(self):  
         pass
+
+class ikea_outlet_energy_consumed(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device):
+        super().__init__(device, id_suffix="ENERGY_CONSUMED", name_suffix="Energy Consumed")
+    
+    @property
+    def device_class(self):
+        return SensorDeviceClass.ENERGY
+
+    @property
+    def native_value(self):
+        return round(self._device.total_energy_consumed, 2)
+
+    @property
+    def native_unit_of_measurement(self):
+        return "kWh"
+    
+    @property
+    def state_class(self) -> str:
+        return "total_increasing"
+
+class ikea_outlet_current_active_power(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device):
+        super().__init__(device, id_suffix="ACTIVE_POWER", name_suffix="Active Power")
+    
+    @property
+    def device_class(self):
+        return SensorDeviceClass.POWER
+
+    @property
+    def native_value(self):
+        return round(self._device.current_active_power, 2)
+
+    @property
+    def native_unit_of_measurement(self):
+        return "W"
+
+class ikea_outlet_current_amps(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device):
+        super().__init__(device, id_suffix="CURRENT_AMPS", name_suffix="Current (Amps)")
+    
+    @property
+    def device_class(self):
+        return SensorDeviceClass.CURRENT
+
+    @property
+    def native_value(self):
+        return round(self._device.current_amps, 2)
+
+    @property
+    def native_unit_of_measurement(self):
+        return "A"
+
+class ikea_outlet_current_voltage(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device):
+        super().__init__(device, id_suffix="CURRENT_VOLTAGE", name_suffix="Voltage")
+    
+    @property
+    def device_class(self):
+        return SensorDeviceClass.VOLTAGE
+
+    @property
+    def native_value(self):
+        return round(self._device.current_voltage, 2)
+
+    @property
+    def native_unit_of_measurement(self):
+        return "V"
+
+class ikea_outlet_total_energy_consumed_last_updated(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device):
+        super().__init__(device, id_suffix="TOTAL_ENERGY_CONSUMED_LAST_UPDATED", name_suffix="Total Energy Consumed Last Updated")
+    
+    @property
+    def device_class(self):
+        return SensorDeviceClass.TIMESTAMP
+
+    @property
+    def native_value(self):
+        return self._device.total_energy_consumed_last_updated
+
+class ikea_outlet_time_of_last_energy_reset(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device):
+        super().__init__(device, id_suffix="TIME_OF_LAST_ENERGY_RESET", name_suffix="Time of Last Energy Reset")
+    
+    @property
+    def device_class(self):
+        return SensorDeviceClass.TIMESTAMP
+
+    @property
+    def native_value(self):
+        return self._device.time_of_last_energy_reset
