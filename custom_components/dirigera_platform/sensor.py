@@ -27,9 +27,9 @@ async def async_setup_entry(
 ):
     logger.debug("EnvSensor & Controllers Starting async_setup_entry")
     """Setup sensors from a config entry created in the integrations UI."""
-    logger.error("Staring async_setup_entry in SENSOR...")
-    logger.error(dict(config_entry.data))
-    logger.error(f"async_setup_entry SENSOR {config_entry.unique_id} {config_entry.state} {config_entry.entry_id} {config_entry.title} {config_entry.domain}")
+    logger.debug("Staring async_setup_entry in SENSOR...")
+    logger.debug(dict(config_entry.data))
+    logger.debug(f"async_setup_entry SENSOR {config_entry.unique_id} {config_entry.state} {config_entry.entry_id} {config_entry.title} {config_entry.domain}")
     
     config = hass.data[DOMAIN][config_entry.entry_id]
     logger.debug(config)
@@ -63,7 +63,7 @@ async def async_setup_entry(
         ]
 
         hub_controllers = await hass.async_add_executor_job(hub.get_controllers)
-        logger.error(f"Got {len(hub_controllers)} controllers...")
+        logger.debug(f"Got {len(hub_controllers)} controllers...")
         
         # Controllers with more one button are returned as spearate controllers
         # their uniqueid has _1, _2 suffixes. Only the primary controller has 
@@ -78,7 +78,7 @@ async def async_setup_entry(
             #hub.create(name=f"dirigera_platform_empty_scene_{controller.unique_id}",icon="scenes_heart")
             
             scene_name=f"dirigera_platform_empty_scene_{controller.unique_id}"
-            logger.error(f"Creating empty scene {scene_name} for controller {controller.unique_id}...")
+            logger.debug(f"Creating empty scene {scene_name} for controller {controller.unique_id}...")
             await hass.async_add_executor_job(hub.create_empty_scene,scene_name, controller.unique_id)
             
             if controller_device.attributes.battery_percentage:
@@ -99,7 +99,7 @@ async def async_setup_entry(
     if config[CONF_IP_ADDRESS] != "mock":
         hub_outlets: list[Outlet] = await hass.async_add_executor_job(hub.get_outlets)
         for outlet in hub_outlets:
-            if outlet.attributes.model == "INSPELNING Smart plug":
+            if "INSPELNING" in outlet.attributes.model:
                 outlet_entity = ikea_outlet(hass, hub, outlet)
                 outlet_sensors.extend([
                     ikea_outlet_energy_consumed(outlet_entity),
@@ -252,7 +252,7 @@ class ikea_controller(ikea_base_device, SensorEntity):
         self._buttons = 1
         if json_data.attributes.model in CONTROLLER_BUTTON_MAP:
             self._buttons = CONTROLLER_BUTTON_MAP[json_data.attributes.model]
-            logger.error(f"Set #buttons to {self._buttons} as controller model is : {json_data.attributes.model}")
+            logger.debug(f"Set #buttons to {self._buttons} as controller model is : {json_data.attributes.model}")
         
         super().__init__(hass , hub, json_data, hub.get_controller_by_id)
 
