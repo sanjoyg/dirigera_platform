@@ -16,11 +16,19 @@ from homeassistant.const import ATTR_ENTITY_ID
 logger = logging.getLogger("custom_components.dirigera_platform")
 
 process_events_from = {
-    "motionSensor"    : ["isDetected","isOn"],
-    "outlet"          : ["isOn"],
-    "light"           : ["isOn", "lightLevel", "colorTemperature"],
-    "openCloseSensor" : ["isOpen"],
-    "waterSensor"     : ["waterLeakDetected"]
+    "motionSensor": ["isDetected", "isOn"],
+    "outlet": [
+        "isOn",
+        "currentActivePower",
+        "currentAmps",
+        "currentVoltage",
+        "totalEnergyConsumed",
+        "totalEnergyConsumedLastUpdated",
+        "timeOfLastEnergyReset",
+    ],
+    "light": ["isOn", "lightLevel", "colorTemperature"],
+    "openCloseSensor": ["isOpen"],
+    "waterSensor": ["waterLeakDetected"],
 }
 
 def to_snake_case(name:str) -> str:
