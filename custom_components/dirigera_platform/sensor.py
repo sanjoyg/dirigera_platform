@@ -99,8 +99,8 @@ async def async_setup_entry(
     if config[CONF_IP_ADDRESS] != "mock":
         hub_outlets: list[Outlet] = await hass.async_add_executor_job(hub.get_outlets)
         for outlet in hub_outlets:
+            outlet_entity = ikea_outlet(hass, hub, outlet)
             if "INSPELNING" in outlet.attributes.model:
-                outlet_entity = ikea_outlet(hass, hub, outlet)
                 outlet_sensors.extend([
                     ikea_outlet_energy_consumed(outlet_entity),
                     ikea_outlet_current_active_power(outlet_entity),
