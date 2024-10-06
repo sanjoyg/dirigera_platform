@@ -21,23 +21,22 @@ async def async_setup_entry(
     async_add_entities,
 ):
     logger.debug("SWITCH Starting async_setup_entry")
-    """Setup sensors from a config entry created in the integrations UI."""
     config = hass.data[DOMAIN][config_entry.entry_id]
-    # hub = dirigera.Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
     hub = Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
 
     outlets = []
 
-    # If mock then start with mocks
     if config[CONF_IP_ADDRESS] == "mock":
         logger.warning("Setting up mock outlets...")
         mock_outlet1 = ikea_outlet_mock(hub, "mock_outlet1")
         outlets = [mock_outlet1]
     else:
         hub_outlets: list[Outlet] = await hass.async_add_executor_job(hub.get_outlets)
-        outlets = [ikea_outlet(hass, hub, outlet) for outlet in hub_outlets]
+        for outlet in hub_outlets:
+            outlet_entity = ikea_outlet(hass, hub, outlet)
+            outlets.append(outlet_entity)
 
-    logger.debug("Found {} outlet entities to setup...".format(len(outlets)))
+    logger.debug(f"Found {len(outlets)} outlet entities to setup...")
     async_add_entities(outlets)
     logger.debug("SWITCH Complete async_setup_entry")
 
@@ -50,8 +49,7 @@ class ikea_outlet(ikea_base_device, SwitchEntity):
         try:
             await self.hass.async_add_executor_job(self._json_data.set_on, True)
         except Exception as ex:
-            logger.error("error encountered turning on : {}".format(self.name))
-            logger.error(ex)
+            logger.error(f"Error turning on {self.name}: {ex}")
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
 
     async def async_turn_off(self):
@@ -59,10 +57,9 @@ class ikea_outlet(ikea_base_device, SwitchEntity):
         try:
             await self.hass.async_add_executor_job(self._json_data.set_on, False)
         except Exception as ex:
-            logger.error("error encountered turning off : {}".format(self.name))
-            logger.error(ex)
+            logger.error(f"Error turning off {self.name}: {ex}")
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
-        
+
     @property
     def is_on(self):
         return self._json_data.attributes.is_on
