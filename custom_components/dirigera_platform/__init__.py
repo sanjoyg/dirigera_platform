@@ -100,9 +100,8 @@ async def async_setup_entry(
 
     # Setup the entities
     setup_domains = ["switch", "binary_sensor", "light", "sensor", "cover", "fan", "scene"]
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setups(entry, setup_domains)
-    )
+    await hass.config_entries.async_forward_entry_setups(entry, setup_domains)
+
 
     # Now lets start the event listender too
     hub = Hub(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
