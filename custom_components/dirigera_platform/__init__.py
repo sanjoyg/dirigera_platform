@@ -76,7 +76,7 @@ async def async_setup_entry(
     hass.data.setdefault(DOMAIN, {})
     hass_data = dict(entry.data)
 
-    logger.debug(f"hass_data : {hass_data}")
+    logger.error(f"hass_data : {hass_data}")
 
     # for backward compatibility
     hide_device_set_bulbs : bool = True 
@@ -111,9 +111,21 @@ async def async_setup_entry(
         hub_events = hub_event_listener(hub, hass)
         hub_events.start()
 
-    logger.debug("Complete async_setup_entry...")
+    # Lets get all devices, we do this hear so that the right sensor type can be associated
+    # Get Lights
+    from dirigera.devices.motion_sensor import MotionSensor
+    from dirigera.devices.open_close_sensor import OpenCloseSensor
+    from dirigera.devices.water_sensor import WaterSensor
+    from .core.motion_sensor import ikea_motion_sensor_device
+    
+    hub_motion_sensors : list[MotionSensor] = await hass.async_add_executor_job(hub.get_motion_sensors)
+    motion_sensor_devices : list[ikea_motion_sensor_device] = [ikea_motion_sensor_device(hass, hub, m) for m in hub_motion_sensors]
+    logger.error("Found {} motion_sensor entities to setup...".format(len(motion_sensor_devices)))
+
+    logger.error("Complete async_setup_entry...")
 
     return True
+
 
 
 async def options_update_listener(
@@ -139,15 +151,15 @@ async def async_unload_entry(
     hub = Hub(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
     
     # For each controller if there is an empty scene delete it
-    logger.error("In unload so forcing delete of scenes...")
-    scenes: list[DirigeraScene] = await hass.async_add_executor_job(hub.get_scenes)
-    for scene in scenes:
-        if scene.info.name is None or not scene.info.name.startswith("dirigera_platform_empty_scene_"):
-            logger.error(f"Ignoring scene : {scene.info.name}, as not empty scene")
-            continue
-        logger.error(f"Deleting scene {scene.id}...")
-        await hass.async_add_executor_job(hass.delete_scene,scene.id)
-    logger.error("Done deleting scene....")
+    #logger.error("In unload so forcing delete of scenes...")
+    #scenes: list[DirigeraScene] = await hass.async_add_executor_job(hub.get_scenes)
+    #for scene in scenes:
+    #    if scene.info.name is None or not scene.info.name.startswith("dirigera_platform_empty_scene_"):
+    #        logger.error(f"Ignoring scene : {scene.info.name}, as not empty scene")
+    #        continue
+    #    logger.error(f"Deleting scene {scene.id}...")
+    #    await hass.async_add_executor_job(hass.delete_scene,scene.id)
+    #logger.error("Done deleting scene....")
     
     """Unload a config entry."""
     unload_ok = all(

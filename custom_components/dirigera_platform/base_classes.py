@@ -2,6 +2,8 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.components.datetime import DateTimeEntity
 from homeassistant.helpers.entity import DeviceInfo, Entity, EntityCategory
 from homeassistant.core import HomeAssistantError
+from homeassistant.components.number import NumberEntity, NumberDeviceClass
+
 
 from .hub_event_listener import hub_event_listener, registry_entry
 from .const import DOMAIN
@@ -158,7 +160,7 @@ class current_amps_sensor(ikea_base_device_sensor, SensorEntity):
                             uom="A",
                             icon="mdi:current-ac",
                             device_class=SensorDeviceClass.CURRENT)
-
+    
     @property
     def native_value(self):
         return getattr(self._device, "current_amps")

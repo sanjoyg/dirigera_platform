@@ -12,7 +12,6 @@ from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from .const import DOMAIN
 from .mocks.ikea_motion_sensor_mock import ikea_motion_sensor_mock
 from .mocks.ikea_open_close_mock import ikea_open_close_mock
-from .base_classes import battery_percentage_sensor
 from .base_classes import ikea_base_device, ikea_base_device_sensor
 
 logger = logging.getLogger("custom_components.dirigera_platform")
@@ -29,8 +28,6 @@ async def async_setup_entry(
 
     # hub = dirigera.Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
     hub = Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
-
-    lights = []
 
     # If mock then start with mocks
     if config[CONF_IP_ADDRESS] == "mock":
@@ -50,7 +47,6 @@ async def async_setup_entry(
         motion_sensors = []
         for device in motion_sensor_devices:
             motion_sensors.append(ikea_motion_sensor(device))
-            motion_sensors.append(battery_percentage_sensor(device))
     
         logger.debug("Found {} motion_sensor entities to setup...".format(len(motion_sensors)/2))
         async_add_entities(motion_sensors)
@@ -64,7 +60,6 @@ async def async_setup_entry(
         open_close_sensors = []
         for device in open_close_devices:
             open_close_sensors.append(ikea_open_close(device))
-            open_close_sensors.append(battery_percentage_sensor(device))
 
         logger.debug("Found {} open close entities to setup...".format(len(open_close_sensors)/2))
         async_add_entities(open_close_sensors)
@@ -76,7 +71,6 @@ async def async_setup_entry(
         
         water_sensors = []
         for device in water_sensor_devices:
-            water_sensors.append(battery_percentage_sensor(device))
             water_sensors.append(ikea_water_sensor(device))
 
         logger.debug(f"Found {len(hub_water_sensors)/2} water sensors to setup....")

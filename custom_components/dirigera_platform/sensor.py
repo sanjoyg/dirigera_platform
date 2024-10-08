@@ -7,6 +7,15 @@ from .dirigera_lib_patch import HubX
 from dirigera.devices.environment_sensor import EnvironmentSensor
 from dirigera.devices.controller import Controller
 from dirigera.devices.scene import Info, Icon
+from dirigera.devices.outlet import Outlet
+from .base_classes import ikea_base_device, battery_percentage_sensor,ikea_base_device_sensor, current_amps_sensor , current_active_power_sensor, current_voltage_sensor, total_energy_consumed_sensor, energy_consumed_at_last_reset_sensor , total_energy_consumed_last_updated_sensor, total_energy_consumed_sensor, time_of_last_energy_reset_sensor
+from .switch import ikea_outlet, ikea_outlet_switch_sensor
+from dirigera.devices.motion_sensor import MotionSensor
+from dirigera.devices.open_close_sensor import OpenCloseSensor
+from dirigera.devices.water_sensor import WaterSensor
+from .binary_sensor import ikea_motion_sensor, ikea_motion_sensor_device, ikea_open_close_device, ikea_open_close, ikea_water_sensor_device, ikea_water_sensor
+from dirigera.devices.blinds import Blind
+from .cover import IkeaBlindsDevice, IkeaBlinds
 
 from homeassistant.helpers.entity import Entity
 from homeassistant import config_entries, core
@@ -14,7 +23,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from homeassistant.core import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
-
+    
 from .const import DOMAIN
 from .base_classes import ikea_base_device, ikea_base_device_sensor
 logger = logging.getLogger("custom_components.dirigera_platform")
@@ -24,11 +33,11 @@ async def async_setup_entry(
     config_entry: config_entries.ConfigEntry,
     async_add_entities,
 ):
-    logger.debug("EnvSensor & Controllers Starting async_setup_entry")
+    logger.debug("sensor Starting async_setup_entry")
     """Setup sensors from a config entry created in the integrations UI."""
-    logger.error("Staring async_setup_entry in SENSOR...")
-    logger.error(dict(config_entry.data))
-    logger.error(f"async_setup_entry SENSOR {config_entry.unique_id} {config_entry.state} {config_entry.entry_id} {config_entry.title} {config_entry.domain}")
+    logger.debug("Staring async_setup_entry in SENSOR...")
+    logger.debug(dict(config_entry.data))
+    logger.debug(f"async_setup_entry SENSOR {config_entry.unique_id} {config_entry.state} {config_entry.entry_id} {config_entry.title} {config_entry.domain}")
     
     config = hass.data[DOMAIN][config_entry.entry_id]
     logger.debug(config)
@@ -62,7 +71,7 @@ async def async_setup_entry(
         ]
 
         hub_controllers = await hass.async_add_executor_job(hub.get_controllers)
-        logger.error(f"Got {len(hub_controllers)} controllers...")
+        logger.debug(f"Got {len(hub_controllers)} controllers...")
         
         # Controllers with more one button are returned as spearate controllers
         # their uniqueid has _1, _2 suffixes. Only the primary controller has 
@@ -101,7 +110,57 @@ async def async_setup_entry(
     async_add_entities(env_sensors)
     async_add_entities(controller_devices)
 
-    logger.debug("EnvSensor & Controllers Complete async_setup_entry")
+    # Add sensors for the outlets
+    hub_outlets : list[Outlet]  = await hass.async_add_executor_job(hub.get_outlets)
+    extra_entities = []
+    
+    extra_attrs=["current_amps","current_active_power","current_voltage","total_energy_consumed","energy_consumed_at_last_reset","time_of_last_energy_reset","total_energy_consumed_last_updated"]
+    # Some outlets like INSPELNING Smart plug have ability to report power, so add those as well
+    logger.debug("Looking for extra attributes of power/current/voltage in outlet....")
+    for hub_outlet in hub_outlets:
+        outlet = ikea_outlet(hass, hub, hub_outlet)
+        for attr in extra_attrs:
+            if getattr(hub_outlet.attributes,attr) is not None:
+                extra_entities.append(eval(f"{attr}_sensor(outlet)"))
+                
+    logger.debug(f"Found {len(extra_entities)}, power attribute sensors for outlets")
+    async_add_entities(extra_entities)
+    
+    # Add battery sensors
+    battery_sensors = []
+
+    hub_motion_sensors : list[MotionSensor] = await hass.async_add_executor_job(hub.get_motion_sensors)
+    motion_sensor_devices : list[ikea_motion_sensor_device] = [ikea_motion_sensor_device(hass, hub, m) for m in hub_motion_sensors]
+
+    for device in motion_sensor_devices:
+        battery_sensors.append(battery_percentage_sensor(device))
+    
+    hub_open_close_sensors : list[OpenCloseSensor] = await hass.async_add_executor_job(hub.get_open_close_sensors)
+    open_close_devices : list[ikea_open_close_device] = [
+        ikea_open_close_device(hass, hub, open_close_sensor)
+        for open_close_sensor in hub_open_close_sensors
+    ]
+
+    for device in open_close_devices:
+        battery_sensors.append(battery_percentage_sensor(device))
+
+    hub_water_sensors : list[WaterSensor] = await hass.async_add_executor_job(hub.get_water_sensors)
+    water_sensor_devices = [ ikea_water_sensor_device(hass, hub, hub_water_sensor) 
+                            for hub_water_sensor in hub_water_sensors
+                        ]
+    
+    for device in water_sensor_devices:
+        battery_sensors.append(battery_percentage_sensor(device))
+
+    hub_blinds = await hass.async_add_executor_job(hub.get_blinds)
+    devices = [IkeaBlindsDevice(hass, hub, b) for b in hub_blinds]
+    for device in devices:
+        if getattr(device,"battery_percentage",None) is not None:
+            battery_sensors.append(battery_percentage_sensor(device))
+            
+    logger.debug(f"Found {len(battery_sensors)} battery sensors...")
+    async_add_entities(battery_sensors)
+    logger.debug("sensor Complete async_setup_entry")
 
 class ikea_vindstyrka_device(ikea_base_device):
     def __init__(self, hass:core.HomeAssistant, hub:Hub , json_data:EnvironmentSensor) -> None:
@@ -123,7 +182,7 @@ class ikea_vindstyrka_device(ikea_base_device):
 
 class ikea_vindstyrka_temperature(ikea_base_device_sensor, SensorEntity):
     def __init__(self, device: ikea_vindstyrka_device) -> None:
-        super().__init__(device, id_suffix="TEMP", name_suffix="Temperature")
+        super().__init__(device, id_suffix="TEMP", name="Temperature")
         logger.debug("ikea_vindstyrka_temperature ctor...")
 
     @property
@@ -145,7 +204,7 @@ class ikea_vindstyrka_temperature(ikea_base_device_sensor, SensorEntity):
 class ikea_vindstyrka_humidity(ikea_base_device_sensor, SensorEntity):
     def __init__(self, device: ikea_vindstyrka_device) -> None:
         logger.debug("ikea_vindstyrka_humidity ctor...")
-        super().__init__(device, id_suffix="HUM", name_suffix="Humidity")
+        super().__init__(device, id_suffix="HUM", name="Humidity")
 
     @property
     def device_class(self):
@@ -174,15 +233,15 @@ class ikea_vindstyrka_pm25(ikea_base_device_sensor, SensorEntity):
         name_suffix = " "
         if self._pm25_type == WhichPM25.CURRENT:
             id_suffix = "CURPM25"
-            name_suffix = "Current PM2.5"
+            name = "Current PM2.5"
         if self._pm25_type == WhichPM25.MAX:
             id_suffix = "MAXPM25"
-            name_suffix = "Max Measured PM2.5"
+            name = "Max Measured PM2.5"
         if self._pm25_type == WhichPM25.MIN:
             id_suffix = "MINPM25"
-            name_suffix = "Min Measured PM2.5"
+            name = "Min Measured PM2.5"
 
-        super().__init__(device, id_suffix=id_suffix, name_suffix=name_suffix)
+        super().__init__(device, id_suffix=id_suffix, name=name_suffix)
 
     @property
     def device_class(self):
@@ -206,7 +265,7 @@ class ikea_vindstyrka_pm25(ikea_base_device_sensor, SensorEntity):
 class ikea_vindstyrka_voc_index(ikea_base_device_sensor, SensorEntity):
     def __init__(self, device: ikea_vindstyrka_device) -> None:
         logger.debug("ikea_vindstyrka_voc_index ctor...")
-        super().__init__(device, id_suffix="VOC", name_suffix="VOC Index")
+        super().__init__(device, id_suffix="VOC", name="VOC Index")
 
     @property
     def device_class(self):

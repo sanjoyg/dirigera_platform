@@ -11,7 +11,7 @@ from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
 from .mocks.ikea_outlet_mock import ikea_outlet_mock
-from .base_classes import ikea_base_device, current_amps_sensor , current_active_power_sensor, current_voltage_sensor, total_energy_consumed_sensor, energy_consumed_at_last_reset_sensor , total_energy_consumed_last_updated_sensor, total_energy_consumed_sensor, time_of_last_energy_reset_sensor
+from .base_classes import ikea_base_device, ikea_base_device_sensor, current_amps_sensor , current_active_power_sensor, current_voltage_sensor, total_energy_consumed_sensor, energy_consumed_at_last_reset_sensor , total_energy_consumed_last_updated_sensor, total_energy_consumed_sensor, time_of_last_energy_reset_sensor
 logger = logging.getLogger("custom_components.dirigera_platform")
 
 
@@ -42,10 +42,11 @@ async def async_setup_entry(
         logger.debug("Looking for extra attributes of power/current/voltage in outlet....")
         for hub_outlet in hub_outlets:
             outlet = ikea_outlet(hass, hub, hub_outlet)
-            outlets.append(outlet)
-            for attr in extra_attrs:
-                if getattr(hub_outlet.attributes,attr) is not None:
-                    extra_entities.append(eval(f"{attr}_sensor(outlet)"))
+            switch_sensor = ikea_outlet_switch_sensor(outlet)
+            outlets.append(switch_sensor)
+            #for attr in extra_attrs:
+                #if getattr(hub_outlet.attributes,attr) is not None:
+                    #extra_entities.append(eval(f"{attr}_sensor(outlet)"))
                     
     logger.debug("Found {} outlet entities to setup...".format(len(outlets)))
     async_add_entities(outlets)
@@ -55,14 +56,14 @@ async def async_setup_entry(
         
     logger.debug("SWITCH Complete async_setup_entry")
 
-class ikea_outlet(ikea_base_device, SwitchEntity):
+class ikea_outlet(ikea_base_device):
     def __init__(self, hass, hub, json_data):
         super().__init__(hass, hub, json_data, hub.get_outlet_by_id)
 
     async def async_turn_on(self):
         logger.debug("outlet turn_on")
         try:
-            await self.hass.async_add_executor_job(self._json_data.set_on, True)
+            await self._hass.async_add_executor_job(self._json_data.set_on, True)
         except Exception as ex:
             logger.error("error encountered turning on : {}".format(self.name))
             logger.error(ex)
@@ -71,8 +72,20 @@ class ikea_outlet(ikea_base_device, SwitchEntity):
     async def async_turn_off(self):
         logger.debug("outlet turn_off")
         try:
-            await self.hass.async_add_executor_job(self._json_data.set_on, False)
+            await self._hass.async_add_executor_job(self._json_data.set_on, False)
         except Exception as ex:
             logger.error("error encountered turning off : {}".format(self.name))
             logger.error(ex)
             raise HomeAssistantError(ex, DOMAIN, "hub_exception")
+
+class ikea_outlet_switch_sensor(ikea_base_device_sensor, SwitchEntity):
+    def __init__(self, device):
+        super().__init__(device = device, name = device.name )
+        
+    async def async_turn_on(self):
+        logger.debug("sensor: outlet turn_on")
+        await self._device.async_turn_on()
+
+    async def async_turn_off(self):
+        logger.debug("sensor: outlet turn_off")
+        await self._device.async_turn_off()
