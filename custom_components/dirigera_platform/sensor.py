@@ -76,9 +76,10 @@ async def async_setup_entry(
             # so that click of buttons on the controller can generate events on the hub
             #hub.create(name=f"dirigera_platform_empty_scene_{controller.unique_id}",icon="scenes_heart")
             
-            scene_name=f"dirigera_platform_empty_scene_{controller.unique_id}"
-            logger.error(f"Creating empty scene {scene_name} for controller {controller.unique_id}...")
-            await hass.async_add_executor_job(hub.create_empty_scene,scene_name, controller.unique_id)
+            # Commenting right now 
+            #scene_name=f"dirigera_platform_empty_scene_{controller.unique_id}"
+            #logger.error(f"Creating empty scene {scene_name} for controller {controller.unique_id}...")
+            #await hass.async_add_executor_job(hub.create_empty_scene,scene_name, controller.unique_id)
             
             if controller_device.attributes.battery_percentage :
                 controller_devices.append(controller)

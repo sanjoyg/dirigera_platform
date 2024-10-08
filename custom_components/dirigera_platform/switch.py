@@ -11,7 +11,7 @@ from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
 from .mocks.ikea_outlet_mock import ikea_outlet_mock
-from .base_classes import ikea_base_device
+from .base_classes import ikea_base_device, current_amps_sensor , current_active_power_sensor, current_voltage_sensor, total_energy_consumed_sensor, energy_consumed_at_last_reset_sensor , total_energy_consumed_last_updated_sensor, total_energy_consumed_sensor, time_of_last_energy_reset_sensor
 logger = logging.getLogger("custom_components.dirigera_platform")
 
 
@@ -27,7 +27,8 @@ async def async_setup_entry(
     hub = Hub(config[CONF_TOKEN], config[CONF_IP_ADDRESS])
 
     outlets = []
-
+    extra_entities = []
+    
     # If mock then start with mocks
     if config[CONF_IP_ADDRESS] == "mock":
         logger.warning("Setting up mock outlets...")
@@ -35,10 +36,23 @@ async def async_setup_entry(
         outlets = [mock_outlet1]
     else:
         hub_outlets : list[Outlet]  = await hass.async_add_executor_job(hub.get_outlets)
-        outlets = [ikea_outlet(hass, hub, outlet) for outlet in hub_outlets]
-
+        
+        extra_attrs=["current_amps","current_active_power","current_voltage","total_energy_consumed","energy_consumed_at_last_reset","time_of_last_energy_reset","total_energy_consumed_last_updated"]
+        # Some outlets like INSPELNING Smart plug have ability to report power, so add those as well
+        logger.debug("Looking for extra attributes of power/current/voltage in outlet....")
+        for hub_outlet in hub_outlets:
+            outlet = ikea_outlet(hass, hub, hub_outlet)
+            outlets.append(outlet)
+            for attr in extra_attrs:
+                if getattr(hub_outlet.attributes,attr) is not None:
+                    extra_entities.append(eval(f"{attr}_sensor(outlet)"))
+                    
     logger.debug("Found {} outlet entities to setup...".format(len(outlets)))
     async_add_entities(outlets)
+    logger.debug(f"Found {len(extra_entities)} extra entities for outlet...")
+    if len(extra_entities) > 0:
+        async_add_entities(extra_entities)
+        
     logger.debug("SWITCH Complete async_setup_entry")
 
 class ikea_outlet(ikea_base_device, SwitchEntity):

@@ -1,4 +1,5 @@
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.datetime import DateTimeEntity
 from homeassistant.helpers.entity import DeviceInfo, Entity, EntityCategory
 from homeassistant.core import HomeAssistantError
 
@@ -6,6 +7,7 @@ from .hub_event_listener import hub_event_listener, registry_entry
 from .const import DOMAIN
 
 import logging 
+from datetime import datetime
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -87,12 +89,16 @@ class ikea_base_device:
             listener.schedule_update_ha_state(force_refresh)
 
 class ikea_base_device_sensor():
-    def __init__(self,  device, id_suffix:str = "", name_suffix:str = ""):
+    def __init__(self,  device, id_suffix:str = "", name:str = "", uom="", icon="", device_class=None, entity_category=None):
         self._device = device
-        self._name_suffix = name_suffix
+        self._name = name
         self._id_suffix = id_suffix
+        self._uom = uom
+        self._device_class = device_class
+        self._entity_category = entity_category
         self._device.add_listener(self)
-
+        self._icon = icon 
+        
     @property
     def unique_id(self):
         return self._device.unique_id + self._id_suffix
@@ -107,38 +113,138 @@ class ikea_base_device_sensor():
         
     @property
     def name(self):
-        return self._device.name + " " + self._name_suffix
-            
-    async def async_update(self):
-        await self._device.async_update()
-
-class battery_percentage_sensor(ikea_base_device_sensor, SensorEntity):
-    def __init__(self, device):
-        super().__init__(device)
-
+        return self._name
+    
     @property
     def entity_category(self):
-        return EntityCategory.DIAGNOSTIC
-      
-    @property
-    def unique_id(self):
-        return f"{self._device.unique_id}_BP01"
+        return self._entity_category
     
     @property
     def device_class(self) -> str:
-        return SensorDeviceClass.BATTERY
-    
-    @property
-    def native_unit_of_measurement(self) -> str:
-        return "%"
+        return self._entity_category
     
     @property
     def icon(self):
-        return "mdi:battery"
-    @property
-    def name(self) -> str:
-        return f"{self._device.name} Battery"
+        return self._icon 
     
     @property
+    def native_unit_of_measurement(self) -> str:
+        return self._uom
+    
+    async def async_update(self):
+        await self._device.async_update()
+     
+class battery_percentage_sensor(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device):
+        super().__init__(
+                            device = device, 
+                            id_suffix="BP01",
+                            name="Battery Percentage",
+                            uom="%",
+                            icon="mdi:battery",
+                            device_class=SensorDeviceClass.BATTERY,
+                            entity_category=EntityCategory.DIAGNOSTIC)
+
+    @property
     def native_value(self):
-        return getattr(self._device, "battery_percentage", 0)
+        return getattr(self._device, "battery_percentage")
+    
+class current_amps_sensor(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device):
+        super().__init__(
+                            device = device, 
+                            id_suffix="CA01",
+                            name="Current Amps",
+                            uom="A",
+                            icon="mdi:current-ac",
+                            device_class=SensorDeviceClass.CURRENT)
+
+    @property
+    def native_value(self):
+        return getattr(self._device, "current_amps")
+
+class current_active_power_sensor(ikea_base_device_sensor, SensorEntity):   
+    def __init__(self, device):
+        super().__init__(
+                            device = device, 
+                            id_suffix="CAP01",
+                            name="Current Active Power",
+                            uom="W",
+                            icon="mdi:lightning-bolt-outline",
+                            device_class=SensorDeviceClass.POWER)
+
+    @property
+    def native_value(self):
+        return getattr(self._device, "current_active_power")
+    
+class current_voltage_sensor(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device):
+        super().__init__(device,"current_voltage","CV01",SensorDeviceClass.VOLTAGE,"V","Current Voltage","mdi:power-plug")
+    
+    def __init__(self, device):
+        super().__init__(
+                            device = device, 
+                            id_suffix="CV01",
+                            name="Current Voltage",
+                            uom="V",
+                            icon="mdi:power-plug",
+                            device_class=SensorDeviceClass.VOLTAGE)
+
+    @property
+    def native_value(self):
+        return getattr(self._device, "current_voltage")
+    
+class total_energy_consumed_sensor(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device):
+        super().__init__(
+                            device = device, 
+                            id_suffix="TEC01",
+                            name="Total Energy Consumed",
+                            uom="V",
+                            icon="mdi:lightning-bolt-outline",
+                            device_class=SensorDeviceClass.POWER)
+
+    @property
+    def native_value(self):
+        return getattr(self._device, "total_energy_consumed")
+    
+class energy_consumed_at_last_reset_sensor(ikea_base_device_sensor, SensorEntity):
+    def __init__(self, device):
+        super().__init__(
+                            device = device, 
+                            id_suffix="ELAR01",
+                            name="Energy Consumed at Last Reset",
+                            uom="V",
+                            icon="mdi:lightning-bolt-outline",
+                            device_class=SensorDeviceClass.POWER)
+
+    @property
+    def native_value(self):
+        return getattr(self._device, "energy_consumed_at_last_reset")
+
+class time_of_last_energy_reset_sensor(ikea_base_device_sensor, DateTimeEntity):
+    def __init__(self, device):
+        super().__init__(
+                            device = device, 
+                            id_suffix="TLER01",
+                            name="Time of Last Energy Reset",
+                            icon="mdi:update")
+
+    @property
+    def native_value(self):
+        return getattr(self._device, "time_of_last_energy_reset")
+
+class total_energy_consumed_last_updated_sensor(ikea_base_device_sensor, DateTimeEntity):
+    def __init__(self, device):
+        super().__init__(device,"total_energy_consumed_last_updated","%Y-%m-%dT%H:%M:%S.%f%z","TECLU01"," Time Energy Consumed Last Updated")
+    
+    def __init__(self, device):
+        super().__init__(
+                            device = device, 
+                            id_suffix="TECLU01",
+                            name="Time Energy Consumed Last Updated",
+                            icon="mdi:update")
+
+    @property
+    def native_value(self):
+        return getattr(self._device, "total_energy_consumed_last_updated")
