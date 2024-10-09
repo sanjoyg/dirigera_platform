@@ -123,7 +123,7 @@ class ikea_base_device_sensor():
     
     @property
     def device_class(self) -> str:
-        return self._entity_category
+        return self._device_class
     
     @property
     def icon(self):
