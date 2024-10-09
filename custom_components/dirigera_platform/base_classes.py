@@ -1,9 +1,8 @@
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass, SensorEntity
 from homeassistant.components.datetime import DateTimeEntity
 from homeassistant.helpers.entity import DeviceInfo, Entity, EntityCategory
 from homeassistant.core import HomeAssistantError
 from homeassistant.components.number import NumberEntity, NumberDeviceClass
-
 
 from .hub_event_listener import hub_event_listener, registry_entry
 from .const import DOMAIN
@@ -91,13 +90,14 @@ class ikea_base_device:
             listener.schedule_update_ha_state(force_refresh)
 
 class ikea_base_device_sensor():
-    def __init__(self,  device, id_suffix:str = "", name:str = "", uom="", icon="", device_class=None, entity_category=None):
+    def __init__(self,  device, id_suffix:str = "", name:str = "", uom="", icon="", device_class=None, entity_category=None, state_class=None):
         self._device = device
         self._name = name
         self._id_suffix = id_suffix
         self._uom = uom
         self._device_class = device_class
         self._entity_category = entity_category
+        self._state_class = state_class
         self._device.add_listener(self)
         self._icon = icon 
         
@@ -124,6 +124,10 @@ class ikea_base_device_sensor():
     @property
     def device_class(self) -> str:
         return self._device_class
+    
+    @property
+    def state_class(self):
+        return self._state_class
     
     @property
     def icon(self):
@@ -204,7 +208,8 @@ class total_energy_consumed_sensor(ikea_base_device_sensor, SensorEntity):
                             name="Total Energy Consumed",
                             uom="kWh",
                             icon="mdi:lightning-bolt-outline",
-                            device_class=SensorDeviceClass.ENERGY)
+                            device_class=SensorDeviceClass.ENERGY,
+                            state_class=SensorStateClass.TOTAL_INCREASING)
 
     @property
     def native_value(self):
@@ -218,7 +223,8 @@ class energy_consumed_at_last_reset_sensor(ikea_base_device_sensor, SensorEntity
                             name="Energy Consumed at Last Reset",
                             uom="kWh",
                             icon="mdi:lightning-bolt-outline",
-                            device_class=SensorDeviceClass.ENERGY)
+                            device_class=SensorDeviceClass.ENERGY,
+                            state_class=SensorStateClass.TOTAL_INCREASING)
 
     @property
     def native_value(self):
