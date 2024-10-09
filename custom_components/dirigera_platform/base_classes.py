@@ -202,9 +202,9 @@ class total_energy_consumed_sensor(ikea_base_device_sensor, SensorEntity):
                             device = device, 
                             id_suffix="TEC01",
                             name="Total Energy Consumed",
-                            uom="V",
+                            uom="kWh",
                             icon="mdi:lightning-bolt-outline",
-                            device_class=SensorDeviceClass.POWER)
+                            device_class=SensorDeviceClass.ENERGY)
 
     @property
     def native_value(self):
@@ -216,9 +216,9 @@ class energy_consumed_at_last_reset_sensor(ikea_base_device_sensor, SensorEntity
                             device = device, 
                             id_suffix="ELAR01",
                             name="Energy Consumed at Last Reset",
-                            uom="V",
+                            uom="kWh",
                             icon="mdi:lightning-bolt-outline",
-                            device_class=SensorDeviceClass.POWER)
+                            device_class=SensorDeviceClass.ENERGY)
 
     @property
     def native_value(self):
