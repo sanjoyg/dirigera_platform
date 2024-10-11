@@ -60,10 +60,6 @@ class ikea_outlet(ikea_base_device):
     def __init__(self, hass, hub, json_data):
         super().__init__(hass, hub, json_data, hub.get_outlet_by_id)
 
-    @property
-    def is_on(self):
-        return self._device.is_on
-
     async def async_turn_on(self):
         logger.debug("outlet turn_on")
         try:
@@ -86,6 +82,10 @@ class ikea_outlet_switch_sensor(ikea_base_device_sensor, SwitchEntity):
     def __init__(self, device):
         super().__init__(device = device, name = device.name )
         
+    @property
+    def is_on(self):
+        return self._device.is_on
+
     async def async_turn_on(self):
         logger.debug("sensor: outlet turn_on")
         await self._device.async_turn_on()
