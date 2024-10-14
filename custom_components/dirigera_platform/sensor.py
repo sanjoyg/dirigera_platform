@@ -78,21 +78,26 @@ async def async_setup_entry(
         # battery % attribute which we shall use to identify
         controller_devices = []
         
+        # Precuationary delete all empty scenes
+        await hass.async_add_executor_job(hub.delete_empty_scenes)
+        
         for controller_device in hub_controllers:
             controller : ikea_controller = ikea_controller(hass, hub, controller_device)
             
             # Hack to create empty scene so that we can associate it the controller
             # so that click of buttons on the controller can generate events on the hub
-            #hub.create(name=f"dirigera_platform_empty_scene_{controller.unique_id}",icon="scenes_heart")
-            
-            # Commenting right now 
-            #scene_name=f"dirigera_platform_empty_scene_{controller.unique_id}"
-            #logger.error(f"Creating empty scene {scene_name} for controller {controller.unique_id}...")
-            #await hass.async_add_executor_job(hub.create_empty_scene,scene_name, controller.unique_id)
-            
+            clicks_supported = controller_device.capabilities.can_send
+            clicks_supported = [ x for x in clicks_supported if x.endswith("Press") ]
+
+            if len(clicks_supported) == 0:
+                logger.debug(f"Ignoring controller for scene creation : {controller_device.id} as no press event supported : {controller_device.capabilities.can_send}")
+            else:
+                #hub.create_empty_scene(controller_id=controller_device.id,clicks_supported=clicks_supported)
+                await hass.async_add_executor_job(hub.create_empty_scene,controller_device.id, clicks_supported)
+                     
             if controller_device.attributes.battery_percentage :
                 controller_devices.append(controller)
-            
+
     env_sensors = []
     for env_device in env_devices:
         # For each device setup up multiple entities
@@ -293,7 +298,7 @@ class ikea_controller(ikea_base_device, SensorEntity):
         self._buttons = 1
         if json_data.attributes.model in CONTROLLER_BUTTON_MAP:
             self._buttons = CONTROLLER_BUTTON_MAP[json_data.attributes.model]
-            logger.error(f"Set #buttons to {self._buttons} as controller model is : {json_data.attributes.model}")
+            logger.debug(f"Set #buttons to {self._buttons} as controller model is : {json_data.attributes.model}")
         
         super().__init__(hass , hub, json_data, hub.get_controller_by_id)
 

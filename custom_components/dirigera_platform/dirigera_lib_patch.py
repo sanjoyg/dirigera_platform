@@ -6,6 +6,10 @@ from dirigera import Hub
 
 from dirigera.devices.device import Attributes, Device
 from dirigera.hub.abstract_smart_home_hub import AbstractSmartHomeHub
+from dirigera.devices.scene import Info, Icon,  SceneType, Trigger, TriggerDetails, ControllerType
+import logging 
+
+logger = logging.getLogger("custom_components.dirigera_platform")
 
 # Patch to fix issues with motion sensor
 class HubX(Hub):
@@ -22,28 +26,44 @@ class HubX(Hub):
         controllers = list(filter(lambda x: x["type"] == "controller", devices))
         return [dict_to_controller(controller, self) for controller in controllers]
     
-    def create_empty_scene(self, name:str, controller_id: str):
-        data = {
-            "info": { "name" : name , "icon" : "scenes_trophy"},
-            "type": "customScene",
-            "triggers": [ { 
-                    "type" : "controller", 
-                    "disabled": False, 
-                    "trigger": {
-                        "controllerType" : "shortcutController",
-                        "buttonIndex" : 0,
-                        "device_id" : controller_id
-                    }
-                }
-            ],
-            "actions": []
-        }
-        
-        response_dict = self.post(
-            "/scenes",
-            data=data,
-        )
+    def create_empty_scene(self, controller_id: str, clicks_supported:list):
+        logging.debug(f"Creating empty scene for controller : {controller_id} with clicks : {clicks_supported}")
+        for click in clicks_supported:
+            scene_name = f'dirigera_integration_empty_scene_{controller_id}_{click}'
+            info = Info(name=f'dirigera_integration_empty_scene_{controller_id}_{click}', icon=Icon.SCENES_CAKE)
+            device_trigger = Trigger(type="controller", disabled=False,
+                                     trigger=TriggerDetails(clickPattern=click, buttonIndex=0, deviceId=controller_id, controllerType=ControllerType.SHORTCUT_CONTROLLER))
 
+            logger.debug(f"Creating empty scene : {info.name}")
+            #self.create_scene(info=info, scene_type=SceneType.USER_SCENE,triggers=[device_trigger])
+            data = {
+                        "info": {"name" : scene_name, "icon" : "scenes_cake"},
+                        "type": "customScene",
+                        "triggers":[
+                                        {
+                                            "type": "controller", 
+                                            "disabled": False, 
+                                            "trigger": 
+                                                {
+                                                    "controllerType": "shortcutController",
+                                                    "clickPattern": click,
+                                                    "buttonIndex": 0,
+                                                    "deviceId": controller_id
+                                                }
+                                        }
+                                    ],
+                "actions": []
+            }
+            
+            self.post("/scenes/", data=data)
+        
+    def delete_empty_scenes(self):
+        scenes = self.get_scenes()
+        for scene in scenes:
+            if scene.info.name.startswith("dirigera_integration_empty_scene_"):
+                logging.debug(f"Deleting Scene id: {scene.id} name: {scene.info.name}...")
+                self.delete_scene(scene.id)
+                
 class ControllerAttributesX(Attributes):
     is_on: Optional[bool] = None
     battery_percentage: Optional[int] = None

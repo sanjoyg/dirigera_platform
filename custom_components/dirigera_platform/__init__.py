@@ -5,6 +5,8 @@ import asyncio
 import logging
 
 from dirigera import Hub 
+from .dirigera_lib_patch import HubX
+
 from dirigera.devices.scene import Scene as DirigeraScene
 
 import voluptuous as vol
@@ -35,10 +37,10 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 hub_events = None 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    logger.error("Starting async_setup...")
+    logger.debug("Starting async_setup...")
     for k in config.keys():
-        logger.error(f"config key: {k} value: {config[k]}")
-    logger.error("Complete async_setup...")
+        logger.debug(f"config key: {k} value: {config[k]}")
+    logger.debug("Complete async_setup...")
 
     def handle_dump_data(call):
         import dirigera
@@ -70,13 +72,13 @@ async def async_setup_entry(
 ) -> bool:
     global hub_events
     """Set up platform from a ConfigEntry."""
-    logger.error("Staring async_setup_entry in init...")
-    logger.error(dict(entry.data))
-    logger.error(f"async_setup_entry {entry.unique_id} {entry.state} {entry.entry_id} {entry.title} {entry.domain}")
+    logger.debug("Staring async_setup_entry in init...")
+    logger.debug(dict(entry.data))
+    logger.debug(f"async_setup_entry {entry.unique_id} {entry.state} {entry.entry_id} {entry.title} {entry.domain}")
     hass.data.setdefault(DOMAIN, {})
     hass_data = dict(entry.data)
 
-    logger.error(f"hass_data : {hass_data}")
+    logger.debug(f"hass_data : {hass_data}")
 
     # for backward compatibility
     hide_device_set_bulbs : bool = True 
@@ -111,7 +113,7 @@ async def async_setup_entry(
         hub_events = hub_event_listener(hub, hass)
         hub_events.start()
 
-    logger.error("Complete async_setup_entry...")
+    logger.debug("Complete async_setup_entry...")
 
     return True
 
@@ -137,18 +139,12 @@ async def async_unload_entry(
         hub_events = None 
 
     hass_data = dict(entry.data)
-    hub = Hub(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
+    hub = HubX(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
     
     # For each controller if there is an empty scene delete it
-    #logger.error("In unload so forcing delete of scenes...")
-    #scenes: list[DirigeraScene] = await hass.async_add_executor_job(hub.get_scenes)
-    #for scene in scenes:
-    #    if scene.info.name is None or not scene.info.name.startswith("dirigera_platform_empty_scene_"):
-    #        logger.error(f"Ignoring scene : {scene.info.name}, as not empty scene")
-    #        continue
-    #    logger.error(f"Deleting scene {scene.id}...")
-    #    await hass.async_add_executor_job(hass.delete_scene,scene.id)
-    #logger.error("Done deleting scene....")
+    logger.debug("In unload so forcing delete of scenes...")
+    await hass.async_add_executor_job(hub.delete_empty_scenes)
+    logger.debug("Done deleting empty scenes....")
     
     """Unload a config entry."""
     unload_ok = all(

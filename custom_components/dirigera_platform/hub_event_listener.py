@@ -76,31 +76,32 @@ class hub_event_listener(threading.Thread):
     def parse_scene_update(self, msg):
         # Verify that this is controller initiated
         if "data" not in msg:
-            logger.error(f"discarding message as key 'data' not found: {msg}")
+            logger.warning(f"discarding message as key 'data' not found: {msg}")
             return 
         
         if "triggers" not in msg["data"]:
-            logger.error(f"discarding message as key 'data/triggers'")
+            logger.warning(f"discarding message as key 'data/triggers'")
             return 
         
         triggers = msg["data"]["triggers"]
         
         for trigger in triggers:
             if "type" not in trigger:
-                logger.error(f"key 'type' not in trigger json : {trigger}")
+                logger.warning(f"key 'type' not in trigger json : {trigger}")
                 continue
             
             if trigger["type"] != "controller":
+                logger.debug(f"Trigger type : {trigger['type']} not controller ignoring...")
                 continue
             
             if "trigger" not in trigger:
-                logger.error(f"key 'trigger' not found in trigger json: {trigger}")
+                logger.warning(f"key 'trigger' not found in trigger json: {trigger}")
                 continue 
             
             details = trigger["trigger"]
             
             if "controllerType" not in details or "clickPattern" not in details or "deviceId" not in details:
-                logger.error(f"Required key controllerType/clickPattern/deviceId not in trigger json : {trigger}")
+                logger.debug(f"Required key controllerType/clickPattern/deviceId not in trigger json : {trigger}")
                 continue  
             
             controller_type = details["controllerType"]
@@ -108,17 +109,17 @@ class hub_event_listener(threading.Thread):
             device_id = details["deviceId"]
             
             if controller_type != "shortcutController":
-                logger.error(f"controller type on message not compatible {controller_type}, ignoring...")
+                logger.debug(f"controller type on message not compatible: {controller_type}, ignoring...")
                 continue 
             
             if click_pattern == "singlePress":
                 trigger_type = "single_click"
             elif click_pattern == "longPress":
                 trigger_type = "long_press"
-            elif click_pattern == "double_click":
-                trigger_type == "double_click"
+            elif click_pattern == "doublePress":
+                trigger_type = "double_click"
             else:
-                logger.error(f"click_pattern : {click_pattern} not in list of types...ignoring")
+                logger.debug(f"click_pattern : {click_pattern} not in list of types...ignoring")
                 continue
             
             device_id_for_registry = device_id
@@ -152,14 +153,21 @@ class hub_event_listener(threading.Thread):
             
             self._hass.bus.async_fire(event_type="dirigera_platform_event",event_data=event_data)
             logger.error(f"Event fired.. {event_data}")
-            logger.error(f"{self.registry_entry}")
             
     def on_message(self, ws:Any, ws_msg:str):
         
         try:
             logger.debug(f"rcvd message : {ws_msg}")
             msg = json.loads(ws_msg)
-            if "type" not in msg or msg['type'] != "deviceStateChanged":
+            if "type" not in msg:
+                logger.debug(f"'type' not found in incoming message, discarding : {msg}")
+                return 
+            
+            if msg['type'] == "sceneUpdated":
+                logger.debug(f"Found sceneUpdated message... ")
+                return self.parse_scene_update(msg)
+            
+            if msg['type'] != "deviceStateChanged":
                 logger.debug(f"discarding non state message: {msg}")
                 return 
 
