@@ -1,0 +1,67 @@
+{
+  "config": {
+    "error": {
+      "hub_connection_fail": "Não foi possível ligar ao hub IKEA dirigera com esses valores, verifique o IP e o Token"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "ip_address": "IP do Hub",
+          "hide_device_set_bulbs": "Ocultar Lâmpadas Definidas do Dispositivo"
+        },
+        "description": "Introduza os Detalhes do Hub IKEA Dirigera",
+        "title": "Configuração do Hub IKEA Dirigera"
+      },
+      "action": {
+        "data": {
+          "ip_address": "IP do Hub",
+          "hide_device_set_bulbs": "Ocultar Lâmpadas Definidas do Dispositivo"
+        },
+        "description": "Pressione o botão de ação no hub dirigera e prima Submeter.",
+        "title": "Configuração do Hub IKEA Dirigera"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "hub_connection_fail": "Não foi possível ligar ao hub IKEA dirigera com esses valores, verifique o IP e o Token"
+    },
+    "step": {
+      "init": {
+        "title": "Plataforma do Hub IKEA Dirigera",
+        "data": {
+          "ip_address": "IP do Hub",
+          "token": "Token",
+          "hide_device_set_bulbs": "Ocultar Lâmpadas Definidas do Dispositivo"
+        },
+        "description": "Atualizar Definições do Hub IKEA Dirigera..."
+      },
+      "action": {
+        "data": {
+          "ip_address": "IP do Hub",
+          "hide_device_set_bulbs": "Ocultar Lâmpadas Definidas do Dispositivo"
+        },
+        "description": "Pressione o botão de ação no hub dirigera e prima Submeter.",
+        "title": "Configuração do Hub IKEA Dirigera"
+      }
+    }
+  },
+  "exceptions": {
+    "hub_exception": {
+      "message": "Exceção gerada pelo Hub..."
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "single_click": "{entity_name} Clique Único",
+      "long_press": "{entity_name} Pressão Longa",
+      "double_click": "{entity_name} Duplo Clique",
+      "button1_single_click": "{entity_name} Botão 1 Clique Único",
+      "button1_long_press": "{entity_name} Botão 1 Pressão Longa",
+      "button1_double_click": "{entity_name} Botão 1 Duplo Clique",
+      "button2_single_click": "{entity_name} Botão 2 Clique Único",
+      "button2_long_press": "{entity_name} Botão 2 Pressão Longa",
+      "button2_double_click": "{entity_name} Botão 2 Duplo Clique"
+    }
+  }
+}
