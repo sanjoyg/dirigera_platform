@@ -14,6 +14,7 @@ Supports
 * VALLHORN Motion Sensors
 * Scenes
 * BADRING Water Leak sensor:
+* SOMRIG Controllers - Included Events for Automation
 
 ## Pre-requisite
 1. Identify the IP of the gateway - Usually looking at the client list in your home router interface will give that.
