@@ -238,14 +238,14 @@ class ikea_vindstyrka_pm25(ikea_base_device_sensor, SensorEntity):
         name_suffix = " "
         if self._pm25_type == WhichPM25.CURRENT:
             id_suffix = "CURPM25"
-            name = "Current PM2.5"
+            name_suffix = "Current PM2.5"
         if self._pm25_type == WhichPM25.MAX:
             id_suffix = "MAXPM25"
-            name = "Max Measured PM2.5"
+            name_suffix = "Max Measured PM2.5"
         if self._pm25_type == WhichPM25.MIN:
             id_suffix = "MINPM25"
-            name = "Min Measured PM2.5"
-
+            name_suffix = "Min Measured PM2.5"
+        
         super().__init__(device, id_suffix=id_suffix, name=name_suffix)
 
     @property

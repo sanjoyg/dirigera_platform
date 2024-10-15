@@ -53,7 +53,6 @@ class ikea_base_device:
     
     @property
     def device_info(self) -> DeviceInfo:
-        logger.debug(f"device_info called {self.name}")
         
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
@@ -115,6 +114,8 @@ class ikea_base_device_sensor():
         
     @property
     def name(self):
+        if self._name is None or len(self._name) == 0:
+            return self._device.name
         return self._name
     
     @property
