@@ -7,7 +7,7 @@ import websocket
 import ssl
 import re
 from typing import Any 
-
+from datetime import datetime, timedelta
 from dirigera import Hub 
 from .const import DOMAIN
 
@@ -22,6 +22,8 @@ process_events_from = {
     "openCloseSensor" : ["isOpen"],
     "waterSensor"     : ["waterLeakDetected"]
 }
+
+controller_trigger_last_time_map = {}
 
 def to_snake_case(name:str) -> str:
     return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
@@ -74,6 +76,7 @@ class hub_event_listener(threading.Thread):
         logger.debug(f"on_error hub event listener {ws_msg}")
     
     def parse_scene_update(self, msg):
+        global controller_trigger_last_time_map
         # Verify that this is controller initiated
         if "data" not in msg:
             logger.warning(f"discarding message as key 'data' not found: {msg}")
@@ -130,7 +133,7 @@ class hub_event_listener(threading.Thread):
             if match is not None:
                 device_id_for_registry = f"{match.groups()[0]}_1"
                 button_idx = int(match.groups()[2])
-                logger.error(f"Multi button controller, device_id effective : {device_id_for_registry} with buttons : {button_idx}")
+                logger.debug(f"Multi button controller, device_id effective : {device_id_for_registry} with buttons : {button_idx}")
                 
             if button_idx != 0:
                 trigger_type =f"button{button_idx}_{trigger_type}"
@@ -139,11 +142,35 @@ class hub_event_listener(threading.Thread):
             registry_value = hub_event_listener.get_registry_entry(device_id_for_registry)
             
             if registry_value.__class__.__name__ != "registry_entry":
-                logger.error(f"id : {device_id_for_registry} listener registry is not correct : {registry_value.__class__.__name__}...")
+                logger.debug(f"id : {device_id_for_registry} listener registry is not correct : {registry_value.__class__.__name__}...")
                 continue
             
             entity  = registry_value.entity
             
+            unique_key = f"{entity.registry_entry.device_id}_{trigger_type}"
+            last_fired = datetime.now() 
+            if unique_key in controller_trigger_last_time_map:
+                last_fired = controller_trigger_last_time_map[unique_key]
+                logger.debug(f"Found date/time in map for controller : {last_fired}")
+            
+            controller_trigger_last_time_map[unique_key] = datetime.now()
+                
+            if "lastTriggered" in msg["data"]:
+                current_triggered_str = msg["data"]["lastTriggered"]
+                try: 
+                    current_triggered = datetime.strptime(current_triggered_str,"%Y-%m-%dT%H:%M:%S.%fZ")
+                    one_second_delta = timedelta(seconds=1)
+                    controller_trigger_last_time_map[unique_key] = current_triggered
+                    logger.debug(f"Updated date/time in map for controller with : {current_triggered}")    
+                    if last_fired is not None and one_second_delta > current_triggered - last_fired:
+                        logger.debug("Will not let this event be fired, this is to get over bug IKEA bug of firing event twice for controller")
+                        return 
+                    
+                except Exception as ex:
+                    logger.warning(f"Failed to parse date/time for last_triggered from event : {current_triggered_str}, wont affect functionality...")
+                    logger.warning(ex)
+                    # Ignore and let event be fired
+                    
             # Now raise the bus event
             event_data = {
                 "type": trigger_type,
@@ -151,8 +178,8 @@ class hub_event_listener(threading.Thread):
                 ATTR_ENTITY_ID: entity.registry_entry.entity_id
             }    
             
-            self._hass.bus.async_fire(event_type="dirigera_platform_event",event_data=event_data)
-            logger.error(f"Event fired.. {event_data}")
+            self._hass.bus.fire(event_type="dirigera_platform_event",event_data=event_data)
+            logger.debug(f"Event fired.. {event_data}")
             
     def on_message(self, ws:Any, ws_msg:str):
         
