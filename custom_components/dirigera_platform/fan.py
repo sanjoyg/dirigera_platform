@@ -160,7 +160,16 @@ class ikea_starkvind_air_purifier_device(ikea_base_device):
     
     @property
     def preset_mode(self) -> str:
-        return self.fan_mode
+        if self.fan_mode == FanModeEnum.OFF:
+            return "off"
+        if self.fan_mode == FanModeEnum.LOW:
+            return "low"
+        if self.fan_mode == FanModeEnum.MEDIUM:
+            return "medium"
+        if self.fan_mode == FanModeEnum.HIGH:
+            return "high"
+        return "auto"
+        #return self.fan_mode
     
     async def async_update(self):
         if (
@@ -226,14 +235,13 @@ class ikea_starkvind_air_purifier_device(ikea_base_device):
                 percentage, preset_mode
             )
         )
+        
         if preset_mode is not None:
             await self.async_set_preset_mode(preset_mode)
         elif percentage is not None:
             await self.async_set_percentage(percentage)
         else:
-            logger.debug(
-                "We were asked to be turned on but percentage and preset were not set, using last known"
-            )
+            logger.debug("We were asked to be turned on but percentage and preset were not set, using last known")
             if self.preset_mode is not None:
                 await self.async_set_preset_mode(self.preset_mode)
             elif self.percentage is not None:
