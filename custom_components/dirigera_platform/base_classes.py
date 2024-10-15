@@ -148,7 +148,6 @@ class battery_percentage_sensor(ikea_base_device_sensor, SensorEntity):
                             id_suffix="BP01",
                             name="Battery Percentage",
                             uom="%",
-                            icon="mdi:battery",
                             device_class=SensorDeviceClass.BATTERY,
                             entity_category=EntityCategory.DIAGNOSTIC)
 
