@@ -18,12 +18,10 @@ from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN
 from homeassistant.core import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS
-from .mocks.ikea_bulb_mock import ikea_bulb_mock
+from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS, PLATFORM
 from .hub_event_listener import hub_event_listener, registry_entry
 
 logger = logging.getLogger("custom_components.dirigera_platform")
-
 
 async def async_setup_entry(
     hass: core.HomeAssistant,
@@ -44,45 +42,37 @@ async def async_setup_entry(
         hide_device_set_bulbs = config[CONF_HIDE_DEVICE_SET_BULBS]
 
     logger.debug(f"found setting hide_device_set_bulbs : {hide_device_set_bulbs}")
-    lights = []
 
-    # If mock then start with mocks
-    if config[CONF_IP_ADDRESS] == "mock":
-        logger.warning("Setting up mock bulbs")
-        mock_bulb1 = ikea_bulb_mock()
-        lights = [mock_bulb1]
-    else:
-        hub_lights = await hass.async_add_executor_job(hub.get_lights)
-        all_lights = [ikea_bulb(hub, light) for light in hub_lights]
-        logger.debug("Found {} total of all light entities to setup...".format(len(all_lights)))
+    all_lights = hass.data[DOMAIN][PLATFORM].lights 
+    logger.debug("Found {} total of all light entities to setup...".format(len(all_lights)))
         
-        device_sets  = {}
-        lights = []
-        for light in all_lights:
-            if len(light._json_data.device_set) > 0:
-                for one_set in light._json_data.device_set:
-                    id = one_set['id']
-                    name = one_set['name']
-                    # Use the room of the first light encountered in the set as the 'suggested area' for HA
-                    suggested_room = light._json_data.room
+    device_sets  = {}
+    lights = []
+    for light in all_lights:
+        if len(light._json_data.device_set) > 0:
+            for one_set in light._json_data.device_set:
+                id = one_set['id']
+                name = one_set['name']
+                # Use the room of the first light encountered in the set as the 'suggested area' for HA
+                suggested_room = light._json_data.room
 
-                    target_device_set = None 
-                    
-                    if id not in device_sets:
-                        logger.debug(f"Found new device set {name}")
-                        device_sets[id] = device_set_model(id, name, suggested_room)
-                    
-                    target_device_set = device_sets[id]
-                    target_device_set.add_light(light)
-                    
-                    #if not hide_device_set_bulbs:
-                    lights.append(light)
-            else:
+                target_device_set = None 
+                
+                if id not in device_sets:
+                    logger.debug(f"Found new device set {name}")
+                    device_sets[id] = device_set_model(id, name, suggested_room)
+                
+                target_device_set = device_sets[id]
+                target_device_set.add_light(light)
+                
+                #if not hide_device_set_bulbs:
                 lights.append(light)
+        else:
+            lights.append(light)
 
-        logger.debug(f"Found {len(device_sets.keys())} device_sets")
-        logger.debug(f"Found {len(lights)} lights to setup...")
-        async_add_entities([ikea_bulb_device_set(hub, device_sets[key], device_sets[key].get_lights()[0] ) for key in device_sets])
+    logger.debug(f"Found {len(device_sets.keys())} device_sets")
+    logger.debug(f"Found {len(lights)} lights to setup...")
+    async_add_entities([ikea_bulb_device_set(hub, device_sets[key], device_sets[key].get_lights()[0] ) for key in device_sets])
 
     async_add_entities(lights)
     logger.debug("LIGHT Complete async_setup_entry")

@@ -41,9 +41,7 @@ class ikea_starkvind_air_purifier_mock_device:
                 logger.info("AirPurifier Mock Update called...")
                 self._updated_at = datetime.datetime.now()
             except Exception as ex:
-                logger.error(
-                    "error encountered running update on : {}".format(self.name)
-                )
+                logger.error("error encountered running update on : {}".format(self.name))
                 logger.error(ex)
                 raise HomeAssistantError(ex, DOMAIN, "hub_exception")
 

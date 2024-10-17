@@ -32,9 +32,7 @@ class ikea_vindstyrka_device_mock(ikea_vindstyrka_device):
                 logger.debug("Updated environment sensor...")
                 self._updated_at = datetime.datetime.now()
             except Exception as ex:
-                logger.error(
-                    "error encountered running update on : {}".format(self.name)
-                )
+                logger.error("error encountered running update on : {}".format(self.name))
                 logger.error(ex)
                 raise HomeAssistantError(ex, DOMAIN, "hub_exception")
         else:

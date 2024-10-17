@@ -7,21 +7,28 @@ import logging
 from dirigera import Hub 
 from .dirigera_lib_patch import HubX
 
-from dirigera.devices.scene import Scene as DirigeraScene
+from .ikea_gateway import ikea_gateway
 
 import voluptuous as vol
 
 from homeassistant import config_entries, core
 from homeassistant.components.light import PLATFORM_SCHEMA
-from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN, CONF_ENTITY_ID, CONF_TYPE
+from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN, Platform
 
 # Import the device class from the component that you want to support
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS
+from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS, PLATFORM
 from .hub_event_listener import hub_event_listener
+
+PLATFORMS_TO_SETUP = [  Platform.SWITCH, 
+                        Platform.BINARY_SENSOR, 
+                        Platform.LIGHT, 
+                        Platform.SENSOR, 
+                        Platform.COVER, 
+                        Platform.FAN,
+                        Platform.SCENE]
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -100,12 +107,27 @@ async def async_setup_entry(
     hass_data["unsub_options_update_listener"] = unsub_options_update_listener
     hass.data[DOMAIN][entry.entry_id] = hass_data
 
+    hass_data = dict(entry.data)
+    hub = HubX(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
+    
+    # Lets get all kinds that we are interested in one go and create the devices
+    # such that the platform can go ahead and add the associated sensors
+    platform = ikea_gateway()
+    hass.data[DOMAIN][PLATFORM] = platform 
+    logger.debug("Starting make_devices...")
+    await platform.make_devices(hass,hass_data[CONF_IP_ADDRESS], hass_data[CONF_TOKEN])
+    
+    #await hass.async_add_executor_job(platform.make_devices,hass, hass_data[CONF_IP_ADDRESS], hass_data[CONF_TOKEN])
+    
     # Setup the entities
-    setup_domains = ["switch", "binary_sensor", "light", "sensor", "cover", "fan", "scene"]
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setups(entry, setup_domains)
-    )
-
+    #setup_domains = ["switch", "binary_sensor", "light", "sensor", "cover", "fan", "scene"]
+    #hass.async_create_task(
+    #    hass.config_entries.async_forward_entry_setups(entry, setup_domains)
+    #)
+    #for setup_domain in setup_domains:
+    #    await hass.config_entries.async_forward_entry_setup(entry,setup_domain)
+    await hass.config_entries.async_forward_entry_setups (entry, PLATFORMS_TO_SETUP)
+    
     # Now lets start the event listender too
     hub = Hub(hass_data[CONF_TOKEN], hass_data[CONF_IP_ADDRESS])
     
@@ -116,8 +138,6 @@ async def async_setup_entry(
     logger.debug("Complete async_setup_entry...")
 
     return True
-
-
 
 async def options_update_listener(
     hass: core.HomeAssistant, config_entry: config_entries.ConfigEntry

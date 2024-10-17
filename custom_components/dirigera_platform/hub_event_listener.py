@@ -9,7 +9,6 @@ import re
 from typing import Any 
 from datetime import datetime, timedelta
 from dirigera import Hub 
-from .const import DOMAIN
 
 from homeassistant.const import ATTR_ENTITY_ID 
 
