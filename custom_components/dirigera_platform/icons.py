@@ -47,6 +47,50 @@ icon_mapping: dict[Icon, str] = {
     Icon.SCENES_YOGA: "mdi:yoga",
 }
 
+ikea_to_hass_mapping: dict[str, str] = {
+    "scenes_arrive_home": "mdi:home-import-outline",
+    "scenes_book": "mdi:book",
+    "scenes_briefcase": "mdi:briefcase",
+    "scenes_brightness_up": "mdi:lightbulb",
+    "scenes_broom": "mdi:broom",
+    "scenes_cake": "mdi:cake",
+    "scenes_clapper": "mdi:movie-open",
+    "scenes_clean_sparkles": "mdi:creation",
+    "scenes_cutlery": "mdi:silverware-fork-knife",
+    "scenes_disco_ball": "mdi:ceiling-light",
+    "scenes_game_pad": "mdi:gamepad",
+    "scenes_gift_bag": "mdi:shopping",
+    "scenes_gift_box": "mdi:gift",
+    "scenes_headphones": "mdi:headphones",
+    "scenes_heart": "mdi:heart",
+    "scenes_home_filled": "mdi:home",
+    "scenes_hot_drink": "mdi:cup",
+    "scenes_ladle": "mdi:silverware-spoon",
+    "scenes_leaf": "mdi:leaf",
+    "scenes_leave_home": "mdi:home-export-outline",
+    "scenes_moon": "mdi:moon-waning-crescent",
+    "scenes_music_note": "mdi:music-note",
+    "scenes_painting": "mdi:palette",
+    "scenes_popcorn": "mdi:popcorn",
+    "scenes_pot_with_lid": "mdi:pot",
+    "scenes_speaker_generic": "mdi:speaker",
+    "scenes_spray_bottle": "mdi:spray",
+    "scenes_suitcase": "mdi:suitcase",
+    "scenes_suitcase_2": "mdi:briefcase",
+    "scenes_sun_horizon": "mdi:weather-sunset",
+    "scenes_tree": "mdi:pine-tree",
+    "scenes_trophy": "mdi:trophy",
+    "scenes_wake_up": "mdi:alarm",
+    "scenes_weights": "mdi:dumbbell",
+    "scenes_yoga": "mdi:yoga"
+}
+
+def ikea_to_hass_icon(ikea_icon) -> str:
+    if ikea_icon not in ikea_to_hass_mapping:
+        return ikea_to_hass_mapping[ikea_icon]
+    
+    logger.warning(f"Unknown icon {ikea_icon}")
+    return "mdi:help" 
 
 def to_hass_icon(dirigera_icon: Icon) -> str:
     """Return suitable replacement icon."""

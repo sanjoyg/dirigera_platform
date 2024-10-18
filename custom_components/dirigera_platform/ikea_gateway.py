@@ -42,7 +42,7 @@ class ikea_gateway:
         self.devices = {}
 
     async def make_devices(self, hass, ip, token):
-        hub = HubX(token, ip)
+        hub: HubX = HubX(token, ip)
         
         #Scenes
         scenes = await hass.async_add_executor_job(hub.get_scenes)
@@ -50,7 +50,7 @@ class ikea_gateway:
         empty_scenes = []
         non_empty_scenes = []
         for scene in scenes:
-            if scene.info.name.startswith("dirigera_integration_empty_scene_"):
+            if scene.name.startswith("dirigera_integration_empty_scene_"):
                 empty_scenes.append(ikea_scene(hub,scene))
             else:
                 non_empty_scenes.append(ikea_scene(hub,scene))
