@@ -53,22 +53,21 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         import dirigera
 
         logger.info("=== START Devices JSON ===")
+        key = list(hass.data[DOMAIN].keys())[0]
+        
+        config_data = hass.data[DOMAIN][key]
+        ip = config_data[CONF_IP_ADDRESS]
+        token = config_data[CONF_TOKEN]
+        
+        logger.info("--------------")
+        if ip == "mock":
+            logger.info("{ MOCK JSON }")
+        else:
+            hub = dirigera.Hub(token, ip)
+            json_resp = hub.get("/devices")
+            logger.info(json_resp)
+        logger.info("--------------")
 
-        # we could have multiple hubs set up
-        for key in hass.data[DOMAIN].keys():
-            logger.info("--------------")
-            config_data = hass.data[DOMAIN][key]
-            ip = config_data[CONF_IP_ADDRESS]
-            token = config_data[CONF_TOKEN]
-            if ip == "mock":
-                logger.info("{ MOCK JSON }")
-            else:
-                hub = dirigera.Hub(token, ip)
-                json_resp = hub.get("/devices")
-                logger.info(json_resp)
-            logger.info("--------------")
-
-        logger.info("=== END Devices JSON ===")
 
     hass.services.async_register(DOMAIN, "dump_data", handle_dump_data)
     return True
