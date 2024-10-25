@@ -45,8 +45,8 @@ hub_events = None
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     logger.debug("Starting async_setup...")
-    for k in config.keys():
-        logger.debug(f"config key: {k} value: {config[k]}")
+    #for k in config.keys():
+    #    logger.debug(f"config key: {k} value: {config[k]}")
     logger.debug("Complete async_setup...")
 
     def handle_dump_data(call):
@@ -65,6 +65,89 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         else:
             hub = dirigera.Hub(token, ip)
             json_resp = hub.get("/devices")
+            logger.error(f"TYPE IS {type(json_resp)}")
+            #import json 
+            #devices_json = json.loads(json_resp)
+            # Sanitize the dump
+                    
+            master_id_map = {}
+            id_counter = 1
+            for device_json in json_resp:
+                if "id" in device_json:
+                    id_value = device_json["id"]
+                    id_to_replace = id_counter 
+                    
+                    if id_value in master_id_map:
+                        id_to_replace = master_id_map[id_value]
+                    else:
+                        id_counter = id_counter + 1
+                        master_id_map[id_value] = id_to_replace
+                    
+                    device_json["id"] = id_to_replace
+                    
+                if "relationId" in device_json:
+                    id_value = device_json["relationId"]
+                    id_to_replace = id_counter 
+                    
+                    if id_value in master_id_map:
+                        id_to_replace = master_id_map[id_value]
+                    else:
+                        id_counter = id_counter + 1
+                        master_id_map[id_value] = id_to_replace
+                    
+                    device_json["id"] = id_to_replace
+                
+                if "attributes" in device_json and "serialNumber" in device_json["attributes"]:
+                    id_value = device_json["attributes"]["serialNumber"]
+                    id_to_replace = id_counter 
+                    
+                    if id_value in master_id_map:
+                        id_to_replace = master_id_map[id_value]
+                    else:
+                        id_counter = id_counter + 1
+                        master_id_map[id_value] = id_to_replace
+                    
+                    device_json["attributes"]["serialNumber"] = id_to_replace
+                
+                if "room" in device_json and "id" in device_json["room"]:
+                    id_value = device_json["room"]["id"]
+                    id_to_replace = id_counter 
+                    
+                    if id_value in master_id_map:
+                        id_to_replace = master_id_map[id_value]
+                    else:
+                        id_counter = id_counter + 1
+                        master_id_map[id_value] = id_to_replace
+                    
+                    device_json["room"]["id"] = id_to_replace
+                
+                if "deviceSet" in device_json:
+                    for device_set in device_json["deviceSet"]:
+                        if "id" in device_set:
+                            id_value = device_set["id"]
+                            id_to_replace = id_counter 
+                            
+                            if id_value in master_id_map:
+                                id_to_replace = master_id_map[id_value]
+                            else:
+                                id_counter = id_counter + 1
+                                master_id_map[id_value] = id_to_replace
+                            
+                            device_set["id"]= id_to_replace
+                
+                if "remote_link" in device_json["remoteLinks"]:
+                    for remote_link in device_json["remoteLinks"]:
+                        id_value = device_set["id"]
+                        id_to_replace = id_counter 
+                        
+                        if id_value in master_id_map:
+                            id_to_replace = master_id_map[id_value]
+                        else:
+                            id_counter = id_counter + 1
+                            master_id_map[id_value] = id_to_replace
+                        
+                        remote_link["id"]= id_to_replace
+                
             logger.info(json_resp)
         logger.info("--------------")
 
@@ -79,18 +162,18 @@ async def async_setup_entry(
     global hub_events
     """Set up platform from a ConfigEntry."""
     logger.debug("Staring async_setup_entry in init...")
-    logger.debug(dict(entry.data))
-    logger.debug(f"async_setup_entry {entry.unique_id} {entry.state} {entry.entry_id} {entry.title} {entry.domain}")
+    #logger.debug(dict(entry.data))
+    #logger.debug(f"async_setup_entry {entry.unique_id} {entry.state} {entry.entry_id} {entry.title} {entry.domain}")
     hass.data.setdefault(DOMAIN, {})
     hass_data = dict(entry.data)
 
-    logger.debug(f"hass_data : {hass_data}")
+    #logger.debug(f"hass_data : {hass_data}")
 
     # for backward compatibility
     hide_device_set_bulbs : bool = True 
     if CONF_HIDE_DEVICE_SET_BULBS in hass_data:
          logger.debug("Found HIDE_DEVICE_SET *****  ")
-         logger.debug(hass_data)
+         #logger.debug(hass_data)
          hide_device_set_bulbs = hass_data[CONF_HIDE_DEVICE_SET_BULBS]
     else:
         logger.debug("Not found HIDE_DEVICE_SET *****  ")
