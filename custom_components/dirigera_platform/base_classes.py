@@ -129,9 +129,10 @@ class ikea_base_device_sensor():
         
     @property
     def name(self):
+    
         if self._name is None or len(self._name) == 0:
             return self._device.name
-        return self._name
+        return f"{self._device.name} {self._name}"
     
     @property
     def entity_category(self):
