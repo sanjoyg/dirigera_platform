@@ -42,6 +42,7 @@ class ikea_base_device:
         self._json_data = json_data
         self._get_by_id_fx = get_by_id_fx
         self._listeners : list[Entity] = []
+        self._skip_update = False 
 
         # inject properties based on attr
         induce_properties(ikea_base_device, self._json_data.attributes.dict())
@@ -50,6 +51,14 @@ class ikea_base_device:
         if self.should_register_with_listener:
             hub_event_listener.register(self._json_data.id, registry_entry(self))
 
+    @property
+    def skip_update(self)->bool:
+        return self._skip_update
+    
+    @skip_update.setter
+    def skip_update(self, value:bool):
+        self._skip_update = value 
+        
     def add_listener(self, entity : Entity) -> None:
         self._listeners.append(entity)
 
@@ -84,6 +93,10 @@ class ikea_base_device:
         return self._json_data.attributes.custom_name
             
     async def async_update(self):
+        if self.skip_update:
+            logger.debug(f"update skipped for {self.name} as marked to skip...")
+            return 
+        
         logger.debug(f"update called {self.name}")
         try:
             self._json_data = await self._hass.async_add_executor_job(self._get_by_id_fx, self._json_data.id)
@@ -160,7 +173,8 @@ class ikea_base_device_sensor():
 class ikea_outlet_device(ikea_base_device):
     def __init__(self, hass, hub, json_data):
         super().__init__(hass, hub, json_data, hub.get_outlet_by_id)
-
+        self.skip_update = True 
+    
     async def async_turn_on(self):
         logger.debug("outlet turn_on")
         try:
