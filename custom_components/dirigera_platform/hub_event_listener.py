@@ -15,11 +15,20 @@ from homeassistant.const import ATTR_ENTITY_ID
 logger = logging.getLogger("custom_components.dirigera_platform")
 
 process_events_from = {
-    "motionSensor"    : ["isDetected","isOn"],
-    "outlet"          : ["isOn"],
-    "light"           : ["isOn", "lightLevel", "colorTemperature"],
-    "openCloseSensor" : ["isOpen"],
-    "waterSensor"     : ["waterLeakDetected"]
+    "motionSensor"    :     ["isDetected","isOn","batteryPercentage"],
+    "outlet"          :     [   "isOn",
+                                "currentAmps",
+                                "currentActivePower",
+                                "currentVoltage",
+                                "totalEnergyConsumed",
+                                "energyConsumedAtLastReset",
+                                "timeOfLastEnergyReset",
+                                "totalEnergyConsumedLastUpdated"],
+    "light"           :     ["isOn", "lightLevel", "colorTemperature"],
+    "openCloseSensor" :     ["isOpen","batteryPercentage"],
+    "waterSensor"     :     ["waterLeakDetected","batteryPercentage"],
+    "blinds"          :     ["blindsCurrentLevel","batteryPercentage"],
+    "environmentSensor":    ["currentTemperature","currentRH","batteryPercentage"]
 }
 
 controller_trigger_last_time_map = {}
