@@ -86,7 +86,7 @@ ikea_to_hass_mapping: dict[str, str] = {
 }
 
 def ikea_to_hass_icon(ikea_icon) -> str:
-    if ikea_icon not in ikea_to_hass_mapping:
+    if ikea_icon in ikea_to_hass_mapping:
         return ikea_to_hass_mapping[ikea_icon]
     
     logger.warning(f"Unknown icon {ikea_icon}")
