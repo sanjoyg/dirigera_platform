@@ -26,6 +26,8 @@ import datetime
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
+DATE_TIME_FORMAT:str = "%Y-%m-%dT%H:%M:%S.%fZ"
+
 def induce_properties(class_to_induce, attr):
     for key in attr.keys():
             logger.debug(f"Inducing class {class_to_induce.__name__} property {key} : value {attr[key]}")
@@ -824,7 +826,7 @@ class energy_consumed_at_last_reset_sensor(ikea_base_device_sensor, SensorEntity
                             icon="mdi:lightning-bolt-outline",
                             device_class=SensorDeviceClass.ENERGY,
                             state_class=SensorStateClass.TOTAL_INCREASING)
-
+           
     @property
     def native_value(self):
         return getattr(self._device, "energy_consumed_at_last_reset")
@@ -841,6 +843,19 @@ class time_of_last_energy_reset_sensor(ikea_base_device_sensor, DateTimeEntity):
     def native_value(self):
         return getattr(self._device, "time_of_last_energy_reset")
 
+    @property
+    def time_of_last_energy_reset(self):
+        return self.native_value()
+    
+    @time_of_last_energy_reset.setter
+    def time_of_last_energy_reset(self, value):
+        # This is called from hub events where its a str
+        try:
+            dt_value = datetime.datetime.strptime(value, DATE_TIME_FORMAT)
+            setattr(self._device,"time_of_last_energy_reset",dt_value)
+        except:
+            logger.warning(f"Failed to set time_of_last_energy_reset in sensor using value : {value}")
+ 
 class total_energy_consumed_last_updated_sensor(ikea_base_device_sensor, DateTimeEntity):
     def __init__(self, device):
         super().__init__(device,"total_energy_consumed_last_updated","%Y-%m-%dT%H:%M:%S.%f%z","TECLU01"," Time Energy Consumed Last Updated")
@@ -855,3 +870,16 @@ class total_energy_consumed_last_updated_sensor(ikea_base_device_sensor, DateTim
     @property
     def native_value(self):
         return getattr(self._device, "total_energy_consumed_last_updated")
+    
+    @property
+    def total_energy_consumed_last_updated(self):
+        return self.native_value()
+    
+    @total_energy_consumed_last_updated.setter
+    def time_of_last_energy_reset(self, value):
+        # This is called from hub events where its a str
+        try:
+            dt_value = datetime.datetime.strptime(value, DATE_TIME_FORMAT)
+            setattr(self._device,"total_energy_consumed_last_updated",dt_value)
+        except:
+            logger.warning(f"Failed to set total_energy_consumed_last_updated in sensor using value : {value}")
