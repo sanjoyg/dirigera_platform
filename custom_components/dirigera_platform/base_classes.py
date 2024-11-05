@@ -213,7 +213,8 @@ class ikea_motion_sensor_device(ikea_base_device):
     def __init__(self,hass, hub, json_data):
         logger.debug("ikea_motion_sensor_device ctor...")
         super().__init__(hass, hub, json_data, hub.get_motion_sensor_by_id)
-
+        self.skip_update = True 
+        
 class ikea_motion_sensor(ikea_base_device_sensor, BinarySensorEntity):  
     def __init__(self, device: ikea_motion_sensor_device):
         logger.debug("ikea_motion_sensor ctor...")
@@ -228,6 +229,7 @@ class ikea_open_close_device(ikea_base_device):
     def __init__(self, hass, hub, json_data):
         logger.debug("ikea_motion_sensor_device ctor...")
         super().__init__(hass, hub, json_data, hub.get_open_close_by_id)
+        self.skip_update = True 
 
 class ikea_open_close_sensor(ikea_base_device_sensor, BinarySensorEntity):
     def __init__(self, device: ikea_open_close_device):
@@ -246,7 +248,8 @@ class ikea_open_close_sensor(ikea_base_device_sensor, BinarySensorEntity):
 class ikea_water_sensor_device(ikea_base_device):
     def __init__(self, hass, hub, json_data):
         super().__init__(hass, hub, json_data, hub.get_water_sensor_by_id)
-
+        self.skip_update = True 
+        
 class ikea_water_sensor(ikea_base_device_sensor, BinarySensorEntity):
     def __init__(self, device : ikea_water_sensor_device):
         logger.debug("ikea_water_sensor ctor...")
@@ -452,7 +455,8 @@ class ikea_controller_device(ikea_base_device, SensorEntity):
             logger.debug(f"Set #buttons to {self._buttons} as controller model is : {json_data.attributes.model}")
         
         super().__init__(hass , hub, json_data, hub.get_controller_by_id)
-
+        self.skip_update = True 
+        
     @property
     def entity_category(self):
         return EntityCategory.DIAGNOSTIC
