@@ -858,7 +858,10 @@ class time_of_last_energy_reset_sensor(ikea_base_device_sensor, DateTimeEntity):
  
 class total_energy_consumed_last_updated_sensor(ikea_base_device_sensor, DateTimeEntity):
     def __init__(self, device):
-        super().__init__(device,"total_energy_consumed_last_updated","%Y-%m-%dT%H:%M:%S.%f%z","TECLU01"," Time Energy Consumed Last Updated")
+        super().__init__(   device,
+                            id_suffix="TECLU01",
+                            name="Time Energy Consumed Last Updated",
+                            icon="mdi:update")
     
     def __init__(self, device):
         super().__init__(

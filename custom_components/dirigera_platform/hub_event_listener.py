@@ -28,7 +28,11 @@ process_events_from = {
     "openCloseSensor" :     ["isOpen","batteryPercentage"],
     "waterSensor"     :     ["waterLeakDetected","batteryPercentage"],
     "blinds"          :     ["blindsCurrentLevel","batteryPercentage"],
-    "environmentSensor":    ["currentTemperature","currentRH","batteryPercentage"]
+    "environmentSensor":    [   "currentTemperature",
+                                "currentRH",
+                                "currentPM25",
+                                "vocIndex",
+                                "batteryPercentage"]
 }
 
 controller_trigger_last_time_map = {}
