@@ -841,6 +841,12 @@ class time_of_last_energy_reset_sensor(ikea_base_device_sensor, DateTimeEntity):
 
     @property
     def native_value(self):
+        # Hack
+        value = getattr(self._device, "time_of_last_energy_reset")
+        if type(value) == str:
+            #convert to datetime
+            logger.debug(f"Found time_of_last_energy_reset as string attempting convert to datetime")
+            self.time_of_last_energy_reset = value 
         return getattr(self._device, "time_of_last_energy_reset")
 
     @property
@@ -860,7 +866,7 @@ class total_energy_consumed_last_updated_sensor(ikea_base_device_sensor, DateTim
     def __init__(self, device):
         super().__init__(   device,
                             id_suffix="TECLU01",
-                            name="Time Energy Consumed Last Updated",
+                            name="Total Energy Consumed Last Updated",
                             icon="mdi:update")
     
     def __init__(self, device):
