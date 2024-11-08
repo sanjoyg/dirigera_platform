@@ -181,7 +181,6 @@ class ikea_bulb(LightEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        logger.debug("device info called...")
 
         return DeviceInfo(
             identifiers={("dirigera_platform", self._json_data.id)},
@@ -372,7 +371,6 @@ class ikea_bulb_device_set(LightEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        logger.debug("device info device_set called...")
 
         # Register the device for updates
         hub_event_listener.register(self.unique_id, self)

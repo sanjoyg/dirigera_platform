@@ -534,9 +534,7 @@ class ikea_starkvind_air_purifier_device(ikea_base_device):
     async def async_set_percentage(self, percentage: int) -> None:
         # Convert percent to speed
         desired_speed = math.ceil(percentage * 50 / 100)
-        logger.debug(
-            "set_percentage got : {}, scaled to : {}".format(percentage, desired_speed)
-        )
+        logger.debug("set_percentage got : {}, scaled to : {}".format(percentage, desired_speed))
         await self._hass.async_add_executor_job(self._json_data.set_motor_state, desired_speed)
 
     async def async_set_status_light(self, status: bool) -> None:
@@ -575,11 +573,7 @@ class ikea_starkvind_air_purifier_device(ikea_base_device):
         await self._hass.async_add_executor_job(self._json_data.set_fan_mode, mode_to_set)
         
     async def async_turn_on(self, percentage=None, preset_mode=None) -> None:
-        logger.debug(
-            "Airpurifier call to turn_on with percentage: {}, preset_mode: {}".format(
-                percentage, preset_mode
-            )
-        )
+        logger.debug("Airpurifier call to turn_on with percentage: {}, preset_mode: {}".format(percentage, preset_mode))
         
         if preset_mode is not None:
             await self.async_set_preset_mode(preset_mode)

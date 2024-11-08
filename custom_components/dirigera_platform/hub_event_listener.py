@@ -14,6 +14,8 @@ from homeassistant.const import ATTR_ENTITY_ID
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
+DATE_TIME_FORMAT:str = "%Y-%m-%dT%H:%M:%S.%fZ"
+
 process_events_from = {
     "motionSensor"    :     ["isDetected","isOn","batteryPercentage"],
     "outlet"          :     [   "isOn",
@@ -261,8 +263,20 @@ class hub_event_listener(threading.Thread):
                         if key_attr == "is_on":
                             turn_on_off = True 
                         logger.debug(f"setting {key_attr}  to {attributes[key]}")
-                        setattr(entity._json_data.attributes,key_attr, attributes[key])
-                        logger.debug(entity._json_data)
+                        logger.debug(f"Entity before setting: {entity._json_data}")
+                        
+                        value_to_set = attributes[key]
+                        #Need a hack for outlet with date/time entities
+                        if key in ["timeOfLastEnergyReset","totalEnergyConsumedLastUpdated"]:
+                            logger.debug(f"Got into date/time so will set the value accordingly...")
+                            try :
+                                value_to_set = datetime.datetime.strptime(attributes[key], DATE_TIME_FORMAT)
+                            except:
+                                #Ignore the exception
+                                logger.warning(f"Failed to convert {attributes[key]} to date/time...")
+                        
+                        setattr(entity._json_data.attributes,key_attr, value_to_set)
+                        logger.debug(f"Entity after setting: {entity._json_data}")
                     except Exception as ex:
                         logger.warn(f"Failed to set attribute key: {key} converted to {key_attr} on device: {id}")
                         logger.warn(ex)
