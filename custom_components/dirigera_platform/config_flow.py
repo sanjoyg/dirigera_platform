@@ -150,15 +150,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         # Called when configure is called from an existing configured integration
         # The first screen that is shown, asl called after IP when submitted
 
-        logger.debug("OPTIONS async_step_init called....")
-        logger.debug(user_input)
+        logger.error("OPTIONS async_step_init called....")
+        logger.error(user_input)
 
         errors: Dict[str, str] = {}
 
         if user_input is not None:
-            logger.debug("async step init user input is not none...")
-            logger.debug("user_input is ")
-            logger.debug(user_input)
+            logger.error("async step init user input is not none...")
+            logger.error("user_input is ")
+            logger.error(user_input)
 
             self.ip = user_input[CONF_IP_ADDRESS]
             self.hide_device_set_bulbs = user_input[CONF_HIDE_DEVICE_SET_BULBS]
@@ -169,7 +169,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 errors["base"] = "ip_not_specified"
             else:
                 try:
-                    logger.debug("Moving to second step....")
+                    logger.error("Moving to second step....")
                     if self.ip == "mock":
                         logger.warning(
                             "Using mock ip, skipping token generation step 1"
@@ -201,8 +201,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         # Since IP is specified we will try and get the auth token an set that up in
         # the config for use at a later time
         errors: Dict[str, str] = {}
-        logger.debug("ip {}".format(self.ip))
-        logger.debug(f"hide device set bulbs {self.hide_device_set_bulbs}")
+        logger.error("ip {}".format(self.ip))
+        logger.error(f"hide device set bulbs {self.hide_device_set_bulbs}")
         # Try and get the token step_2
         try:
             if self.ip == "mock":
@@ -213,14 +213,18 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     get_dirigera_token_step_two, self.ip, self.code, self.code_verifier
                 )
                 logger.info("Successful generating token")
-                logger.debug(token)
+                logger.error(token)
 
             user_input[CONF_IP_ADDRESS] = self.ip
             user_input[CONF_TOKEN] = token
             user_input[CONF_HIDE_DEVICE_SET_BULBS] = self.hide_device_set_bulbs
-            logger.debug("before create entry...")
-            logger.debug(user_input)
+            logger.error("before create entry...")
+            logger.error(user_input)
 
+            self.hass.config_entries.async_update_entry(self.config_entry, data=user_input,
+                                                        title="IKEA Dirigera Hub : {}".format(user_input[CONF_IP_ADDRESS]),)
+            #return self.async_create_entry(title=None, data=None)
+            #return self.config_entry.async_update_entry(user_input)
             return self.async_create_entry(
                 title="IKEA Dirigera Hub : {}".format(user_input[CONF_IP_ADDRESS]),
                 data=user_input,

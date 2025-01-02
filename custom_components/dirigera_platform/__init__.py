@@ -65,7 +65,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         else:
             hub = dirigera.Hub(token, ip)
             json_resp = hub.get("/devices")
-            logger.error(f"TYPE IS {type(json_resp)}")
+            logger.debug(f"TYPE IS {type(json_resp)}")
             #import json 
             #devices_json = json.loads(json_resp)
             # Sanitize the dump
@@ -161,13 +161,10 @@ async def async_setup_entry(
 ) -> bool:
     global hub_events
     """Set up platform from a ConfigEntry."""
-    logger.debug("Staring async_setup_entry in init...")
-    #logger.debug(dict(entry.data))
-    #logger.debug(f"async_setup_entry {entry.unique_id} {entry.state} {entry.entry_id} {entry.title} {entry.domain}")
+    logger.info("Staring async_setup_entry in init...")
+    
     hass.data.setdefault(DOMAIN, {})
     hass_data = dict(entry.data)
-
-    #logger.debug(f"hass_data : {hass_data}")
 
     # for backward compatibility
     hide_device_set_bulbs : bool = True 
@@ -180,10 +177,10 @@ async def async_setup_entry(
         # If its not with HASS update it
         hass_data[CONF_HIDE_DEVICE_SET_BULBS] = hide_device_set_bulbs
 
-    logger.debug(f"******** HIDE : {hide_device_set_bulbs} ********")
     ip = hass_data[CONF_IP_ADDRESS]
     # Registers update listener to update config entry when options are updated.
     unsub_options_update_listener = entry.add_update_listener(options_update_listener)
+    entry.async_on_unload(entry.add_update_listener(options_update_listener))
 
     # Store a reference to the unsubscribe function to cleanup if an entry is unloaded.
     hass_data["unsub_options_update_listener"] = unsub_options_update_listener
@@ -224,7 +221,8 @@ async def async_setup_entry(
 async def options_update_listener(
     hass: core.HomeAssistant, config_entry: config_entries.ConfigEntry
 ):
-    logger.debug("In options_update_listener")
+    logger.debug("**********In options_update_listener")
+    logger.debug(config_entry)
     """Handle options update."""
     await hass.config_entries.async_reload(config_entry.entry_id)
 
