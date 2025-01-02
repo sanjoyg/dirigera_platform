@@ -1,0 +1,67 @@
+{
+    "config": {
+      "error": {
+        "hub_connection_fail": "Could not connect to IKEA dirigera hub with these values, check IP & Token"
+      },
+      "step": {
+        "user": {
+          "data": {
+            "ip_address": "Hub IP",
+            "hide_device_set_bulbs": "Hide Device Set Bulbs"
+          },
+          "description": "Enter IKEA Dirigera Hub Details",
+          "title": "IKEA Dirigera Hub Setup"
+        },
+        "action": {
+          "data": {
+            "ip_address": "Hub IP",
+            "hide_device_set_bulbs": "Hide Device Set Bulbs"
+          },
+          "description": "Press the action button the dirigera hub and press Submit.",
+          "title": "IKEA Dirigera Hub Setup"
+        }
+      }
+    },
+    "options": {
+      "error": {
+        "hub_connection_fail": "Could not connect to IKEA dirigera hub with these values, check IP & Token"
+      },
+      "step": {
+        "init": {
+          "title": "IKEA Dirigera Hub Platform",
+          "data": {
+            "ip_address": "Hub IP",
+            "token": "token",
+            "hide_device_set_bulbs": "Hide Device Set Bulbs"
+          },
+          "description": "Update IKEA Dirigera Hub Setting..."
+        },
+        "action": {
+          "data": {
+            "ip_address": "Hub IP",
+            "hide_device_set_bulbs": "Hide Device Set Bulbs"
+          },
+          "description": "Press the action button the dirigera hub and press Submit.",
+          "title": "IKEA Dirigera Hub Setup"
+        }
+      }
+    },
+    "exceptions": {
+      "hub_exception": {
+        "message" : "Exception raised by Hub..."
+      }
+    },
+    "device_automation": {
+      "trigger_type": {
+        "single_click": "{entity_name} Single Click",
+        "long_press": "{entity_name} Long Press",
+        "double_click": "{entity_name} Double Click",
+        "button1_single_click": "{entity_name} Button 1 Single Click",
+        "button1_long_press": "{entity_name} Button 1 Long Press",
+        "button1_double_click": "{entity_name} Button 1 Double Click",
+        "button2_single_click": "{entity_name} Button 2 Single Click",
+        "button2_long_press": "{entity_name} Button 2 Long Press",
+        "button2_double_click": "{entity_name} Button 2 Double Click"
+      }
+   }
+  }
