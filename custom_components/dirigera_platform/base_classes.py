@@ -144,8 +144,10 @@ class ikea_base_device_sensor():
         
     @property
     def name(self):
-    
         if self._name is None or len(self._name) == 0:
+            return self._device.name
+        if self._device.name.lower()  == self._name.lower():
+            # Dont duplication , Bug Fix #109
             return self._device.name
         return f"{self._device.name} {self._name}"
     
