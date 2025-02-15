@@ -7,14 +7,15 @@ import websocket
 import ssl
 import re
 from typing import Any 
-from datetime import datetime, timedelta
+import datetime
+from dateutil import parser
 from dirigera import Hub 
 
 from homeassistant.const import ATTR_ENTITY_ID 
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
-DATE_TIME_FORMAT:str = "%Y-%m-%dT%H:%M:%S.%fZ"
+DATE_TIME_FORMAT:str =  "%Y-%m-%dT%H:%M:%S.%fZ"
 
 process_events_from = {
     "motionSensor"    :     ["isDetected","isOn","batteryPercentage"],
@@ -162,18 +163,18 @@ class hub_event_listener(threading.Thread):
             entity  = registry_value.entity
             
             unique_key = f"{entity.registry_entry.device_id}_{trigger_type}"
-            last_fired = datetime.now() 
+            last_fired = datetime.datetime.now() 
             if unique_key in controller_trigger_last_time_map:
                 last_fired = controller_trigger_last_time_map[unique_key]
                 logger.debug(f"Found date/time in map for controller : {last_fired}")
             
-            controller_trigger_last_time_map[unique_key] = datetime.now()
+            controller_trigger_last_time_map[unique_key] = datetime.datetime.now()
                 
             if "lastTriggered" in msg["data"]:
                 current_triggered_str = msg["data"]["lastTriggered"]
                 try: 
-                    current_triggered = datetime.strptime(current_triggered_str,"%Y-%m-%dT%H:%M:%S.%fZ")
-                    one_second_delta = timedelta(seconds=1)
+                    current_triggered = parser.parse(current_triggered_str)
+                    one_second_delta = datetime.timedelta(seconds=1)
                     controller_trigger_last_time_map[unique_key] = current_triggered
                     logger.debug(f"Updated date/time in map for controller with : {current_triggered}")    
                     if last_fired is not None and one_second_delta > current_triggered - last_fired:
@@ -270,7 +271,7 @@ class hub_event_listener(threading.Thread):
                         if key in ["timeOfLastEnergyReset","totalEnergyConsumedLastUpdated"]:
                             logger.debug(f"Got into date/time so will set the value accordingly...")
                             try :
-                                value_to_set = datetime.datetime.strptime(attributes[key], DATE_TIME_FORMAT)
+                                value_to_set = parser.parse(attributes[key]) 
                             except:
                                 #Ignore the exception
                                 logger.warning(f"Failed to convert {attributes[key]} to date/time...")
