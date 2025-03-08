@@ -9,6 +9,18 @@ from homeassistant.helpers.entity import DeviceInfo, Entity, EntityCategory
 from homeassistant.components.fan import FanEntity, FanEntityFeature
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
+from homeassistant.const import (
+    EVENT_HOMEASSISTANT_STOP,
+    PERCENTAGE,
+    SIGNAL_STRENGTH_DECIBELS,
+    EntityCategory,
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfEnergy,
+    UnitOfPower,
+    UnitOfTemperature,
+    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+    )
 
 from dirigera import Hub
 from dirigera.devices.blinds import Blind
@@ -118,11 +130,11 @@ class ikea_base_device:
             listener.schedule_update_ha_state(force_refresh)
 
 class ikea_base_device_sensor():
-    def __init__(self,  device, id_suffix:str = "", name:str = "", uom="", icon="", device_class=None, entity_category=None, state_class=None):
+    def __init__(self,  device, id_suffix:str = "", name:str = "", native_unit_of_measurement="", icon="", device_class=None, entity_category=None, state_class=None):
         self._device = device
         self._name = name
         self._id_suffix = id_suffix
-        self._uom = uom
+        self._native_unit_of_measurement = native_unit_of_measurement
         self._device_class = device_class
         self._entity_category = entity_category
         self._state_class = state_class
@@ -169,7 +181,7 @@ class ikea_base_device_sensor():
     
     @property
     def native_unit_of_measurement(self) -> str:
-        return self._uom
+        return self._native_unit_of_measurement
     
     async def async_update(self):
         await self._device.async_update()
@@ -366,7 +378,7 @@ class ikea_vindstyrka_temperature(ikea_base_device_sensor, SensorEntity):
             id_suffix="TEMP", 
             name="Temperature",
             device_class=SensorDeviceClass.TEMPERATURE, 
-            uom="°C",
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             state_class="measurement")
         logger.debug("ikea_vindstyrka_temperature ctor...")
 
@@ -382,7 +394,7 @@ class ikea_vindstyrka_humidity(ikea_base_device_sensor, SensorEntity):
                     id_suffix="HUM", 
                     name="Humidity",
                     device_class=SensorDeviceClass.HUMIDITY,
-                    uom="%")
+                    native_unit_of_measurement=PERCENTAGE)
 
     @property
     def native_value(self) -> int:
@@ -415,7 +427,7 @@ class ikea_vindstyrka_pm25(ikea_base_device_sensor, SensorEntity):
                          id_suffix=id_suffix, 
                          name=name_suffix,
                          device_class=SensorDeviceClass.PM25,
-                         uom="µg/m³")
+                         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER)
 
     @property
     def native_value(self) -> int:
@@ -436,7 +448,7 @@ class ikea_vindstyrka_voc_index(ikea_base_device_sensor, SensorEntity):
             id_suffix="VOC", 
             name="VOC Index",
             device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS,
-            uom="µg/m³")
+            native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER)
 
     @property
     def native_value(self) -> int:
@@ -643,7 +655,7 @@ class ikea_starkvind_air_purifier_sensor(ikea_base_device_sensor, SensorEntity):
         prefix: str,
         device_class: SensorDeviceClass,
         native_value_prop: str,
-        native_uom: str,
+        native_unit_of_measurement: str,
         icon_name: str,
     ):
         logger.debug("ikea_starkvind_air_purifier_sensor ctor ...")
@@ -652,7 +664,7 @@ class ikea_starkvind_air_purifier_sensor(ikea_base_device_sensor, SensorEntity):
                     id_suffix=prefix,
                     name=prefix,
                     device_class=device_class,
-                    uom=native_uom,
+                    native_unit_of_measurement=native_uom,
                     icon=icon_name)
 
         self._native_value_prop = native_value_prop
@@ -744,7 +756,9 @@ class battery_percentage_sensor(ikea_base_device_sensor, SensorEntity):
                             device = device, 
                             id_suffix="BP01",
                             name="Battery Percentage",
-                            uom="%",
+                            native_unit_of_measurement=PERCENTAGE,
+                            state_class=SensorStateClass.MEASUREMENT,
+                            #uom="%",
                             device_class=SensorDeviceClass.BATTERY,
                             entity_category=EntityCategory.DIAGNOSTIC)
 
@@ -758,7 +772,9 @@ class current_amps_sensor(ikea_base_device_sensor, SensorEntity):
                             device = device, 
                             id_suffix="CA01",
                             name="Current Amps",
-                            uom="A",
+                            #uom="A",
+                            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+                            state_class=SensorStateClass.MEASUREMENT,
                             icon="mdi:current-ac",
                             device_class=SensorDeviceClass.CURRENT)
     
@@ -772,7 +788,7 @@ class current_active_power_sensor(ikea_base_device_sensor, SensorEntity):
                             device = device, 
                             id_suffix="CAP01",
                             name="Current Active Power",
-                            uom="W",
+                            native_unit_of_measurement=UnitOfPower.WATT,
                             icon="mdi:lightning-bolt-outline",
                             device_class=SensorDeviceClass.POWER)
 
@@ -781,15 +797,15 @@ class current_active_power_sensor(ikea_base_device_sensor, SensorEntity):
         return getattr(self._device, "current_active_power")
     
 class current_voltage_sensor(ikea_base_device_sensor, SensorEntity):
-    def __init__(self, device):
-        super().__init__(device,"current_voltage","CV01",SensorDeviceClass.VOLTAGE,"V","Current Voltage","mdi:power-plug")
     
     def __init__(self, device):
         super().__init__(
                             device = device, 
                             id_suffix="CV01",
                             name="Current Voltage",
-                            uom="V",
+                            #uom="V",
+                            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+                            state_class=SensorStateClass.MEASUREMENT,
                             icon="mdi:power-plug",
                             device_class=SensorDeviceClass.VOLTAGE)
 
@@ -803,7 +819,7 @@ class total_energy_consumed_sensor(ikea_base_device_sensor, SensorEntity):
                             device = device, 
                             id_suffix="TEC01",
                             name="Total Energy Consumed",
-                            uom="kWh",
+                            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                             icon="mdi:lightning-bolt-outline",
                             device_class=SensorDeviceClass.ENERGY,
                             state_class=SensorStateClass.TOTAL_INCREASING)
@@ -818,7 +834,7 @@ class energy_consumed_at_last_reset_sensor(ikea_base_device_sensor, SensorEntity
                             device = device, 
                             id_suffix="ELAR01",
                             name="Energy Consumed at Last Reset",
-                            uom="kWh",
+                            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                             icon="mdi:lightning-bolt-outline",
                             device_class=SensorDeviceClass.ENERGY,
                             state_class=SensorStateClass.TOTAL_INCREASING)
@@ -832,6 +848,7 @@ class time_of_last_energy_reset_sensor(ikea_base_device_sensor, DateTimeEntity):
         super().__init__(
                             device = device, 
                             id_suffix="TLER01",
+                            device_class=SensorDeviceClass.TIMESTAMP,
                             name="Time of Last Energy Reset",
                             icon="mdi:update")
 
@@ -863,12 +880,14 @@ class total_energy_consumed_last_updated_sensor(ikea_base_device_sensor, DateTim
         super().__init__(   device,
                             id_suffix="TECLU01",
                             name="Total Energy Consumed Last Updated",
+                            device_class=SensorDeviceClass.TIMESTAMP,
                             icon="mdi:update")
     
     def __init__(self, device):
         super().__init__(
                             device = device, 
                             id_suffix="TECLU01",
+                            device_class=SensorDeviceClass.TIMESTAMP,
                             name="Time Energy Consumed Last Updated",
                             icon="mdi:update")
 
