@@ -13,7 +13,7 @@ from dirigera import Hub
 
 from homeassistant.const import ATTR_ENTITY_ID 
 
-logger = logging.getLogger("custom_components.dirigera_platform")
+logger = logging.getLogger("custom_components.dirigera_platform.hub_event_listener")
 
 DATE_TIME_FORMAT:str =  "%Y-%m-%dT%H:%M:%S.%fZ"
 
@@ -252,8 +252,10 @@ class hub_event_listener(threading.Thread):
 
             to_process_attr = process_events_from[device_type]
             turn_on_off = False 
-            if "attributes" in info:
+            
+            if "attributes" in info and info["attributes"] is not None:
                 attributes = info["attributes"]
+               
                 for key in attributes:
                     if key not in to_process_attr:
                         logger.debug(f"attribute {key} with value {attributes[key]} not in list of device type {device_type}, ignoring update...")
@@ -281,7 +283,7 @@ class hub_event_listener(threading.Thread):
                     except Exception as ex:
                         logger.warn(f"Failed to set attribute key: {key} converted to {key_attr} on device: {id}")
                         logger.warn(ex)
-                                 
+                                
                 # Lights behave odd with hubs when setting attribute one event is generated which
                 # causes brightness or other to toggle so put in a hack to fix that
                 # if its is_on attribute then ignore this routine
@@ -299,9 +301,10 @@ class hub_event_listener(threading.Thread):
 
 
         except Exception as ex:
-            logger.error("error processing hub event")
-            logger.error(f"{ws_msg}")
-            logger.error(ex)
+            # Temp solution to not log entries
+            logger.debug("error processing hub event")
+            logger.debug(f"{ws_msg}")
+            logger.debug(ex)
 
     def create_listener(self):
         try:
