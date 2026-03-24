@@ -93,10 +93,18 @@ class ikea_base_device:
         return True 
     
     @property
+    def device_identifier(self) -> str:
+        """Return the identifier used for HA device grouping.
+        Uses relation_id to group sub-devices of the same physical hardware."""
+        if self._json_data.relation_id:
+            return self._json_data.relation_id
+        return self._json_data.id
+
+    @property
     def device_info(self) -> DeviceInfo:
-        
+
         return DeviceInfo(
-            identifiers={("dirigera_platform", self._json_data.id)},
+            identifiers={("dirigera_platform", self.device_identifier)},
             name=self.name,
             manufacturer=self._json_data.attributes.manufacturer,
             model=self._json_data.attributes.model,
@@ -107,6 +115,15 @@ class ikea_base_device:
     @property
     def name(self):
         if self._json_data.attributes.custom_name is None or len(self._json_data.attributes.custom_name) == 0:
+            # For sub-devices with relation_id, try to get name from a sibling
+            if self._json_data.relation_id:
+                for reg_entry in hub_event_listener.device_registry.values():
+                    sibling = reg_entry.entity
+                    if (hasattr(sibling, '_json_data')
+                            and sibling._json_data.relation_id == self._json_data.relation_id
+                            and sibling._json_data.id != self._json_data.id
+                            and sibling._json_data.attributes.custom_name):
+                        return sibling._json_data.attributes.custom_name
             return self.unique_id
         return self._json_data.attributes.custom_name
             

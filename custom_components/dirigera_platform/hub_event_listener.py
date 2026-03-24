@@ -165,7 +165,8 @@ class hub_event_listener(threading.Thread):
                 entity = registry_entry.entity
                 if hasattr(entity, '_json_data') and entity._json_data.room is not None:
                     room_name = entity._json_data.room.name
-                    await self._update_device_area(device_id, room_name)
+                    identifier = entity._json_data.relation_id or entity._json_data.id
+                    await self._update_device_area(identifier, room_name)
                     synced_count += 1
             except Exception as ex:
                 logger.error(f"Failed to sync area for device {device_id}: {ex}")
@@ -536,7 +537,7 @@ class hub_event_listener(threading.Thread):
                         # but not yet in the HA device registry
                         try:
                             self._hass.loop.call_soon_threadsafe(
-                                lambda room=new_room.name, device_id=id: self._hass.async_create_task(
+                                lambda room=new_room.name, device_id=(entity._json_data.relation_id or id): self._hass.async_create_task(
                                     self._update_device_area(device_id, room)
                                 )
                             )
@@ -549,7 +550,7 @@ class hub_event_listener(threading.Thread):
                         room_changed = True
                         try:
                             self._hass.loop.call_soon_threadsafe(
-                                lambda device_id=id: self._hass.async_create_task(
+                                lambda device_id=(entity._json_data.relation_id or id): self._hass.async_create_task(
                                     self._update_device_area(device_id, "")
                                 )
                             )
@@ -621,7 +622,7 @@ class hub_event_listener(threading.Thread):
                 if name_changed and new_name is not None:
                     try:
                         self._hass.loop.call_soon_threadsafe(
-                            lambda name=new_name, device_id=id: self._hass.async_create_task(
+                            lambda name=new_name, device_id=(entity._json_data.relation_id or id): self._hass.async_create_task(
                                 self._update_device_name(device_id, name)
                             )
                         )

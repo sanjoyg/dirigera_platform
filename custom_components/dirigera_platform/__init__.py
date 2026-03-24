@@ -12,6 +12,7 @@ from .ikea_gateway import ikea_gateway
 import voluptuous as vol
 
 from homeassistant import config_entries, core
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.components.light import PLATFORM_SCHEMA
 from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN, Platform
 
@@ -195,7 +196,12 @@ async def async_setup_entry(
     platform = ikea_gateway()
     hass.data[DOMAIN][PLATFORM] = platform 
     logger.debug("Starting make_devices...")
-    await platform.make_devices(hass,hass_data[CONF_IP_ADDRESS], hass_data[CONF_TOKEN])
+    try:
+        await platform.make_devices(hass,hass_data[CONF_IP_ADDRESS], hass_data[CONF_TOKEN])
+    except (ConnectionError, OSError) as err:
+        raise ConfigEntryNotReady(
+            f"Cannot connect to IKEA Dirigera hub at {hass_data[CONF_IP_ADDRESS]}: {err}"
+        ) from err
     
     #await hass.async_add_executor_job(platform.make_devices,hass, hass_data[CONF_IP_ADDRESS], hass_data[CONF_TOKEN])
 

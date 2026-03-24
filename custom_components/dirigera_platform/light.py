@@ -193,7 +193,7 @@ class ikea_bulb(LightEntity):
     def device_info(self) -> DeviceInfo:
 
         return DeviceInfo(
-            identifiers={("dirigera_platform", self._json_data.id)},
+            identifiers={("dirigera_platform", self._json_data.relation_id or self._json_data.id)},
             name=self.name,
             manufacturer=self._json_data.attributes.manufacturer,
             model=self._json_data.attributes.model,
@@ -394,7 +394,7 @@ class ikea_bulb_device_set(LightEntity):
     def device_info(self) -> DeviceInfo:
 
         # Register the device for updates
-        hub_event_listener.register(self.unique_id, self)
+        hub_event_listener.register(self.unique_id, registry_entry(self))
         
         return DeviceInfo(
             identifiers={("dirigera_platform", self._device_set.id)},
