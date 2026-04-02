@@ -10,6 +10,7 @@ from homeassistant.helpers import entity_registry as er
 
 from homeassistant.const import CONF_TYPE, CONF_DEVICE_ID, CONF_DOMAIN, CONF_PLATFORM, ATTR_ENTITY_ID
 from homeassistant.components.homeassistant.triggers import event as event_trigger
+from homeassistant.components.homeassistant.triggers import state as state_trigger
 from homeassistant.components.device_automation import DEVICE_TRIGGER_BASE_SCHEMA
 
 from .const import DOMAIN
@@ -17,7 +18,8 @@ from .hub_event_listener import hub_event_listener
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
-TRIGGER_TYPES = ["single_click", "long_press","double_click"]
+CONTROLLER_TRIGGER_TYPES = ["single_click", "long_press", "double_click"]
+LIGHT_TRIGGER_TYPES = ["turned_on", "turned_off"]
 TRIGGER_SCHEMA = DEVICE_TRIGGER_BASE_SCHEMA.extend({vol.Required(CONF_TYPE): cv.string, vol.Required(ATTR_ENTITY_ID): cv.string})
 
 async def async_get_triggers(hass: HomeAssistant, device_id: str) -> list[dict[str, Any]]:
@@ -53,37 +55,57 @@ async def async_get_triggers(hass: HomeAssistant, device_id: str) -> list[dict[s
         
         logger.debug(f"Found controller to tag events to entity : {entity_name}")
 
+        entity_domain = entity_name.split('.', 1)[0]
+        if entity_domain == "light":
+            for trigger_type in LIGHT_TRIGGER_TYPES:
+                triggers.append(
+                    {
+                        CONF_DEVICE_ID: device_id,
+                        CONF_DOMAIN: DOMAIN,
+                        CONF_PLATFORM: "device",
+                        CONF_TYPE: trigger_type,
+                        ATTR_ENTITY_ID: entity_name,
+                    }
+                )
+            break
+
         # Now we have an ikea_controller
         # Check if entity_id has _X suffix (like "xxx_1") - this pattern must match hub_event_listener.py
         # If it matches, we ALWAYS use buttonX_ prefix to be consistent with event firing
         pattern = r'(([0-9]|[a-z]|-)*)_([0-9])+'
         match = re.match(pattern, entity_id)
 
-        use_prefix : bool = False
+        use_prefix: bool = False
         if match:
             # Device ID has _X suffix - hub_event_listener will add buttonX_ prefix
             logger.debug(f"Entity ID {entity_id} matches multi-button pattern, will use prefix")
             use_prefix = True
-        elif registry_entity.number_of_buttons > 1:
+
+        if not hasattr(registry_entity, "number_of_buttons"):
+            logger.debug(f"Entity {entity_id} is not a controller and has no button triggers")
+            break
+
+        if registry_entity.number_of_buttons > 1:
             # Multiple buttons without _X suffix - also use prefix
             logger.debug("More than one button will use prefix")
             use_prefix = True
 
         for btn_idx in range(registry_entity.number_of_buttons):
-            for trigger_type in TRIGGER_TYPES:
+            for trigger_type in CONTROLLER_TRIGGER_TYPES:
                 if use_prefix:
                     trigger_name = f"button{btn_idx+1}_{trigger_type}"
                 else:
                     trigger_name = trigger_type
-                
+
                 triggers.append(
-                {
-                    CONF_DEVICE_ID: device_id,
-                    CONF_DOMAIN: DOMAIN,
-                    CONF_PLATFORM: "device",
-                    CONF_TYPE: trigger_name,
-                    ATTR_ENTITY_ID: entity_name
-                })
+                    {
+                        CONF_DEVICE_ID: device_id,
+                        CONF_DOMAIN: DOMAIN,
+                        CONF_PLATFORM: "device",
+                        CONF_TYPE: trigger_name,
+                        ATTR_ENTITY_ID: entity_name,
+                    }
+                )
         
         break 
     
@@ -92,7 +114,21 @@ async def async_get_triggers(hass: HomeAssistant, device_id: str) -> list[dict[s
 
 async def async_attach_trigger(hass, config, action, trigger_info):
     logger.debug(f"Got to async_attach_trigger config: {config}, action: {action}, trigger_info: {trigger_info}")
-    
+
+    if config[CONF_TYPE] in LIGHT_TRIGGER_TYPES:
+        # Attach a HA state trigger for light on/off events
+        state_config = state_trigger.TRIGGER_SCHEMA(
+            {
+                state_trigger.CONF_PLATFORM: "state",
+                state_trigger.CONF_ENTITY_ID: config[ATTR_ENTITY_ID],
+                state_trigger.CONF_TO: "on" if config[CONF_TYPE] == "turned_on" else "off",
+            }
+        )
+        return await state_trigger.async_attach_trigger(
+            hass, state_config, action, trigger_info, platform_type="device"
+        )
+
+    # Controller triggers (button presses) use the custom event bus path
     event_config = event_trigger.TRIGGER_SCHEMA(
         {
             event_trigger.CONF_PLATFORM: "event",
@@ -100,11 +136,11 @@ async def async_attach_trigger(hass, config, action, trigger_info):
             event_trigger.CONF_EVENT_DATA: {
                 CONF_DEVICE_ID: config[CONF_DEVICE_ID],
                 CONF_TYPE: config[CONF_TYPE],
-                ATTR_ENTITY_ID: config[ATTR_ENTITY_ID]
+                ATTR_ENTITY_ID: config[ATTR_ENTITY_ID],
             },
         }
     )
-    
+
     return await event_trigger.async_attach_trigger(
         hass, event_config, action, trigger_info, platform_type="device"
     )

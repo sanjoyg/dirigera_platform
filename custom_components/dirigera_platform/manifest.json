@@ -9,5 +9,5 @@
     "issue_tracker": "https://github.com/nrbrt/dirigera_platform/issues",
     "loggers": ["custom_components.dirigera_platform"],
     "requirements": ["dirigera==1.2.6"],
-    "version": "0.0.1"
+    "version": "0.2.5"
 }

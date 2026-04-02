@@ -174,6 +174,15 @@ class hub_event_listener(threading.Thread):
     def on_error(self, ws:Any, ws_msg:str):
         logger.debug(f"on_error hub event listener {ws_msg}")
     
+    def _fire_dirigera_event(self, device_id: str, entity_id: str, trigger_type: str):
+        event_data = {
+            "type": trigger_type,
+            "device_id": device_id,
+            ATTR_ENTITY_ID: entity_id,
+        }
+        self._hass.bus.fire(event_type="dirigera_platform_event", event_data=event_data)
+        logger.debug(f"dirigera_platform_event fired: {event_data}")
+
     def parse_scene_update(self, msg):
         global controller_trigger_last_time_map
         # Verify that this is controller initiated
@@ -310,10 +319,14 @@ class hub_event_listener(threading.Thread):
                 continue
 
             entity = registry_value.entity
+            old_is_on = None
+            if hasattr(entity._json_data.attributes, "is_on"):
+                old_is_on = entity._json_data.attributes.is_on
 
             # Only process light-relevant attributes from scene actions
             light_attrs = ["isOn", "lightLevel", "colorTemperature", "colorHue", "colorSaturation"]
             updated = False
+            scene_on_off_event = None
 
             for key in attributes:
                 if key not in light_attrs:
@@ -323,6 +336,8 @@ class hub_event_listener(threading.Thread):
                     logger.debug(f"Scene action: setting {key_attr} to {attributes[key]} on {device_id}")
                     setattr(entity._json_data.attributes, key_attr, attributes[key])
                     updated = True
+                    if key == "isOn" and old_is_on is not None and old_is_on != attributes[key]:
+                        scene_on_off_event = "turned_on" if attributes[key] else "turned_off"
                 except Exception as ex:
                     logger.warning(f"Scene action: failed to set {key} on {device_id}: {ex}")
 
@@ -339,6 +354,11 @@ class hub_event_listener(threading.Thread):
                 try:
                     entity.schedule_update_ha_state()
                     logger.debug(f"Scene action: scheduled HA state update for {device_id}")
+                    if scene_on_off_event is not None:
+                        try:
+                            self._fire_dirigera_event(device_id, entity.registry_entry.entity_id, scene_on_off_event)
+                        except Exception:
+                            pass
                 except Exception as ex:
                     logger.warning(f"Scene action: failed to schedule update for {device_id}: {ex}")
 
@@ -505,6 +525,13 @@ class hub_event_listener(threading.Thread):
             registry_value = hub_event_listener.get_registry_entry(id)
             entity = registry_value.entity 
 
+            old_is_on = None
+            if device_type == "light":
+                try:
+                    old_is_on = entity._json_data.attributes.is_on
+                except Exception:
+                    old_is_on = None
+
             reachability_changed = False
             if "isReachable" in info:
                 try:
@@ -636,6 +663,23 @@ class hub_event_listener(threading.Thread):
                     # Cascade the update
                     logger.debug(f"Cascading to cascade entity : {registry_value.cascade_entity.unique_id}")
                     registry_value.cascade_entity.schedule_update_ha_state(False)
+
+            # Fire platform event for light on/off state changes to support device triggers
+            if device_type == "light" and has_attributes and "attributes" in info and "isOn" in info["attributes"]:
+                new_is_on = info["attributes"]["isOn"]
+                if old_is_on is not None and new_is_on != old_is_on:
+                    trigger_type = "turned_on" if new_is_on else "turned_off"
+                    try:
+                        entity_id = entity.registry_entry.entity_id
+                    except Exception:
+                        entity_id = None
+                    self._fire_dirigera_event(id, entity_id or "", trigger_type)
+                    if registry_value.cascade_entity is not None:
+                        try:
+                            cascade_entity_id = registry_value.cascade_entity.registry_entry.entity_id
+                        except Exception:
+                            cascade_entity_id = None
+                        self._fire_dirigera_event(registry_value.cascade_entity.unique_id, cascade_entity_id or "", trigger_type)
 
 
         except Exception as ex:
