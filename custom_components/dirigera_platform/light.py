@@ -331,7 +331,7 @@ class ikea_bulb(LightEntity):
                 self._color_mode = ColorMode.COLOR_TEMP
                 self._ignore_update = True
 
-            if ATTR_HS_COLOR in kwargs:
+            if ATTR_HS_COLOR in kwargs and ColorMode.HS in self._supported_color_modes:
                 logger.debug("Request to set color HS")
                 hs_tuple = kwargs[ATTR_HS_COLOR]
                 self._color_hue = hs_tuple[0]
@@ -341,6 +341,15 @@ class ikea_bulb(LightEntity):
                 await self.hass.async_add_executor_job(self._json_data.set_light_color,self._color_hue, self._color_saturation)
                 self._color_mode = ColorMode.HS
                 self._ignore_update = True
+            elif ATTR_HS_COLOR in kwargs:
+                # A hs_color was requested for a bulb that does not support HS
+                # (e.g. a color_temp-only bulb reached via a mixed device set).
+                # Ignore it instead of forcing color_mode=hs, which HA core rejects
+                # with "unsupported color mode hs, expected color_temp".
+                logger.debug(
+                    "Ignoring hs_color for %s: HS not in supported color modes %s",
+                    self.name, self._supported_color_modes,
+                )
             self.async_schedule_update_ha_state(False)
         except Exception as ex:
             logger.error("error encountered turning on : {}".format(self.name))
@@ -494,15 +503,23 @@ class ikea_bulb_device_set(LightEntity):
                 await self.hass.async_add_executor_job(self.patch_command, {"colorTemperature" : ct})
                 self._controller._ignore_update = True 
 
-            if ATTR_HS_COLOR in kwargs:
+            if ATTR_HS_COLOR in kwargs and ColorMode.HS in self._controller.supported_color_modes:
                 logger.debug("Request to set color HS device_set")
                 hs_tuple = kwargs[ATTR_HS_COLOR]
                 self._color_hue = hs_tuple[0]
                 self._color_saturation = hs_tuple[1] / 100
                 # Saturation is 0 - 1 at IKEA
-                self._controller._ignore_update = True 
-                
+                self._controller._ignore_update = True
+
                 await self.hass.async_add_executor_job(self.patch_command,{ "colorHue" : self._color_hue, "colorSaturation" : self._color_saturation})
+            elif ATTR_HS_COLOR in kwargs:
+                # hs_color requested for a device set whose controller bulb does not
+                # support HS (color_temp-only). Ignore it to avoid pushing an
+                # unsupported color mode to the group.
+                logger.debug(
+                    "Ignoring hs_color for device_set %s: HS not in supported color modes %s",
+                    self.name, self._controller.supported_color_modes,
+                )
 
         except Exception as ex:
             logger.error("error encountered turning on device_set : {}".format(self.name))
