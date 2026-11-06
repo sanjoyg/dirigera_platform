@@ -25,11 +25,11 @@ from .ikea_gateway import ikea_gateway
 
 from homeassistant import config_entries, core
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
-from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN, UnitOfTime, CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
+from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN, UnitOfTime
 from homeassistant.core import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 
-from .const import DOMAIN, PLATFORM, DISCOVERY_COORDINATOR
+from .const import DOMAIN, PLATFORM, DISCOVERY_COORDINATOR, UNIT_MICROGRAMS_PER_CUBIC_METER
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
@@ -162,7 +162,7 @@ async def add_air_purifier_sensors(async_add_entities, air_purifiers):
                 prefix="Current pm25",
                 device_class=SensorDeviceClass.PM25,
                 native_value_prop="current_p_m25",
-                native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+                native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
                 icon_name="mdi:molecule",
             )
         )

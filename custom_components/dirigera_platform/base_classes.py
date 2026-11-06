@@ -20,8 +20,6 @@ from homeassistant.const import (
     UnitOfEnergy,
     UnitOfPower,
     UnitOfTemperature,
-    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
-    CONCENTRATION_PARTS_PER_MILLION,
     LIGHT_LUX
     )
 
@@ -33,7 +31,7 @@ from dirigera.devices.controller import Controller
 from dirigera.devices.air_purifier import FanModeEnum
 
 from .hub_event_listener import hub_event_listener, registry_entry
-from .const import DOMAIN
+from .const import DOMAIN, UNIT_MICROGRAMS_PER_CUBIC_METER, UNIT_PARTS_PER_MILLION
 
 from enum import Enum 
 import logging 
@@ -464,7 +462,7 @@ class ikea_vindstyrka_pm25(ikea_base_device_sensor, SensorEntity):
                          id_suffix=id_suffix,
                          name=name_suffix,
                          device_class=SensorDeviceClass.PM25,
-                         native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+                         native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
                          state_class="measurement")
 
     @property
@@ -486,7 +484,7 @@ class ikea_vindstyrka_voc_index(ikea_base_device_sensor, SensorEntity):
             id_suffix="VOC",
             name="VOC Index",
             device_class=SensorDeviceClass.VOLATILE_ORGANIC_COMPOUNDS,
-            native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+            native_unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
             state_class="measurement")
 
     @property
@@ -501,7 +499,7 @@ class ikea_alpstuga_co2(ikea_base_device_sensor, SensorEntity):
             id_suffix="CO2", 
             name="CO2",
             device_class=SensorDeviceClass.CO2,
-            native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION)
+            native_unit_of_measurement=UNIT_PARTS_PER_MILLION)
 
     @property
     def native_value(self) -> int:
