@@ -4,7 +4,11 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from datetime import timedelta
+
 from dirigera import Hub 
+from .hub_http import apply_patch as apply_http_patch, close_sessions
+apply_http_patch()  # must run before any Hub is used
 from .dirigera_lib_patch import HubX
 
 from .ikea_gateway import ikea_gateway
@@ -18,6 +22,7 @@ from homeassistant.const import CONF_IP_ADDRESS, CONF_TOKEN, Platform
 # Import the device class from the component that you want to support
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.event import async_track_time_interval
 
 from .const import DOMAIN, CONF_HIDE_DEVICE_SET_BULBS, PLATFORM, DISCOVERY_COORDINATOR
 from .hub_event_listener import hub_event_listener
@@ -32,6 +37,9 @@ PLATFORMS_TO_SETUP = [  Platform.SWITCH,
                         Platform.SCENE]
 
 logger = logging.getLogger("custom_components.dirigera_platform")
+
+# Safety-net refresh of all device states with ONE request (replaces per-entity polling)
+RESYNC_INTERVAL = timedelta(minutes=5)
 
 # Validation of the user's configuration
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
@@ -214,10 +222,20 @@ async def async_setup_entry(
 
     if hass_data[CONF_IP_ADDRESS] != "mock":
         hub_events = hub_event_listener(hub_basic, hass, discovery)
+        hub_events.daemon = True
         hub_events.start()
         # Sync device areas from Dirigera rooms to HA device registry
         # This ensures areas are set correctly after HA restart
         await hub_events.sync_all_device_areas()
+
+        listener = hub_events
+
+        async def _periodic_resync(_now) -> None:
+            await hass.async_add_executor_job(listener.resync)
+
+        entry.async_on_unload(
+            async_track_time_interval(hass, _periodic_resync, RESYNC_INTERVAL)
+        )
 
     logger.debug("Complete async_setup_entry...")
 
@@ -238,9 +256,9 @@ async def async_unload_entry(
     # Called during re-load and delete
     logger.debug("Starting async_unload_entry")
 
-    #Stop the listener
+    #Stop the listener (blocking join, so not on the event loop)
     if hub_events is not None:
-        hub_events.stop()
+        await hass.async_add_executor_job(hub_events.stop)
         hub_events = None 
 
     hass_data = dict(entry.data)
@@ -270,6 +288,7 @@ async def async_unload_entry(
     
     hass.data[DOMAIN][entry.entry_id]["unsub_options_update_listener"]()
     hass.data[DOMAIN].pop(entry.entry_id)
+    await hass.async_add_executor_job(close_sessions)
     logger.debug("Successfully popped entry")
     logger.debug("Complete async_unload_entry")
 

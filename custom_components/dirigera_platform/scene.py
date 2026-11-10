@@ -44,6 +44,11 @@ class ikea_scene(Scene):
         self._scene = scene 
     
     @property
+    def should_poll(self) -> bool:
+        # Scene definitions rarely change and the polled data was never used.
+        return False
+
+    @property
     def unique_id(self):
         return self._scene.id 
     

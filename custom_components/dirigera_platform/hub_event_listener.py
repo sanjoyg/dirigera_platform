@@ -20,6 +20,9 @@ logger = logging.getLogger("custom_components.dirigera_platform.hub_event_listen
 
 DATE_TIME_FORMAT:str =  "%Y-%m-%dT%H:%M:%S.%fZ"
 
+WS_PING_INTERVAL = 30   # seconds
+WS_PING_TIMEOUT = 10    # seconds
+
 process_events_from = {
     "motionSensor"    :     ["isDetected","isOn","batteryPercentage","customName"],
     "occupancySensor" :     ["isDetected","isOn","batteryPercentage","customName"],
@@ -35,7 +38,8 @@ process_events_from = {
     "light"           :     ["isOn", "lightLevel", "colorTemperature", "colorHue", "colorSaturation", "customName"],
     "openCloseSensor" :     ["isOpen","batteryPercentage","customName"],
     "waterSensor"     :     ["waterLeakDetected","batteryPercentage","customName"],
-    "blinds"          :     ["blindsCurrentLevel","batteryPercentage","customName"],
+    "blinds"          :     ["blindsCurrentLevel","blindsTargetLevel","batteryPercentage","customName"],
+    "controller"      :     ["batteryPercentage","customName"],
     "lightSensor"     :     ["illuminance","batteryPercentage","customName"],
     "environmentSensor":    [   "currentTemperature",
                                 "currentRH",
@@ -93,6 +97,9 @@ class hub_event_listener(threading.Thread):
         super().__init__()
         self._hub : Hub = hub
         self._request_to_stop = False
+        self._stop_event = threading.Event()
+        self._wsapp = None
+        self._connected = False
         self._hass = hass
         self._discovery_coordinator = discovery_coordinator
 
@@ -470,7 +477,14 @@ class hub_event_listener(threading.Thread):
                 logger.info(f"discarding message as  key 'data' or 'data/id' not found: {msg}")
                 return  
             
-            info = msg['data'] 
+            self.process_device_state(msg['data'])
+        except Exception as ex:
+            logger.warning(f"error processing hub event: {ex!r}")
+            logger.debug(f"{ws_msg}")
+
+    def process_device_state(self, info: dict, from_resync: bool = False):
+        """Apply a device state (from a websocket event or a full resync) to the entity."""
+        try:
             id = info['id']
 
             device_type = None
@@ -489,6 +503,9 @@ class hub_event_listener(threading.Thread):
                 return
 
             if id not in hub_event_listener.device_registry:
+                if from_resync:
+                    # Resync must never trigger discovery, it only refreshes known devices
+                    return
                 # Unknown device - try to discover it
                 if self._discovery_coordinator is not None:
                     logger.info(f"Unknown device detected: {id} (type: {device_type}), triggering discovery")
@@ -503,6 +520,9 @@ class hub_event_listener(threading.Thread):
                 return
 
             registry_value = hub_event_listener.get_registry_entry(id)
+            if not isinstance(registry_value, registry_entry):
+                logger.debug(f"id : {id} listener registry is not a registry_entry, ignoring...")
+                return
             entity = registry_value.entity 
 
             reachability_changed = False
@@ -517,7 +537,7 @@ class hub_event_listener(threading.Thread):
 
             # Process room updates (room info comes as separate field, not in attributes)
             room_changed = False
-            if "room" in info:
+            if "room" in info and not from_resync:
                 try:
                     room_data = info["room"]
                     if room_data is not None:
@@ -603,7 +623,15 @@ class hub_event_listener(threading.Thread):
                         logger.warn(ex)
                                 
                 # Update color_mode for lights when color attributes change
-                if device_type == "light" and hasattr(entity, '_color_mode'):
+                if device_type == "light" and hasattr(entity, '_color_mode') and from_resync:
+                    # A full device dump always contains hue AND temperature, so use the
+                    # hub's own colorMode instead of guessing from the keys present.
+                    color_mode = attributes.get("colorMode")
+                    if color_mode == "color":
+                        entity._color_mode = ColorMode.HS
+                    elif color_mode == "temperature":
+                        entity._color_mode = ColorMode.COLOR_TEMP
+                elif device_type == "light" and hasattr(entity, '_color_mode'):
                     if "colorHue" in attributes or "colorSaturation" in attributes:
                         entity._color_mode = ColorMode.HS
                     elif "colorTemperature" in attributes:
@@ -639,10 +667,41 @@ class hub_event_listener(threading.Thread):
 
 
         except Exception as ex:
-            # Temp solution to not log entries
-            logger.debug("error processing hub event")
-            logger.debug(f"{ws_msg}")
-            logger.debug(ex)
+            logger.warning(f"error applying device state for {info.get('id')}: {ex!r}")
+
+    def resync(self):
+        """Fetch all devices with ONE request and apply their state.
+
+        Replaces per-entity polling: used periodically as a safety net and
+        right after the websocket (re)connects, so events missed while the
+        connection was down are not lost.
+        """
+        try:
+            devices = self._hub.get("/devices")
+        except Exception as ex:
+            logger.warning(f"Dirigera resync failed: {ex!r}")
+            return False
+        count = 0
+        for info in devices:
+            if isinstance(info, dict) and info.get("id") in hub_event_listener.device_registry:
+                self.process_device_state(info, from_resync=True)
+                count += 1
+        logger.debug(f"Dirigera resync applied to {count} devices")
+        return True
+
+    def _on_open(self, ws: Any):
+        logger.info("Dirigera hub event listener connected")
+        self._connected = True
+        # Do not block the websocket thread with the HTTP call
+        threading.Thread(target=self.resync, name="dirigera_resync", daemon=True).start()
+
+    def _on_close(self, ws: Any, status_code: Any = None, msg: Any = None):
+        if self._connected:
+            logger.warning(f"Dirigera hub event listener disconnected ({status_code} {msg})")
+        self._connected = False
+
+    def _on_error(self, ws: Any, error: Any):
+        logger.warning(f"Dirigera hub event listener error: {error!r}")
 
     def create_listener(self):
         try:
@@ -650,8 +709,17 @@ class hub_event_listener(threading.Thread):
             self._wsapp = websocket.WebSocketApp(
                 self._hub.websocket_base_url,
                 header={"Authorization": f"Bearer {self._hub.token}"},
+                on_open=self._on_open,
+                on_close=self._on_close,
+                on_error=self._on_error,
                 on_message=self.on_message)
-            self._wsapp.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
+            # ping_interval/ping_timeout detect a silently dead connection
+            # (hub reboot, network change, firewall state loss) so we reconnect.
+            self._wsapp.run_forever(
+                sslopt={"cert_reqs": ssl.CERT_NONE},
+                ping_interval=WS_PING_INTERVAL,
+                ping_timeout=WS_PING_TIMEOUT,
+            )
             #self._hub.create_event_listener(on_message=self.on_message, on_error=self.on_error)
         except Exception as ex:
             logger.error("Error creating event listener...")
@@ -661,6 +729,7 @@ class hub_event_listener(threading.Thread):
         logger.info("Listener request for stop..")
 
         self._request_to_stop = True
+        self._stop_event.set()
         try:
             #self._hub.stop_event_listener()
             if self._wsapp is not None:
@@ -678,5 +747,6 @@ class hub_event_listener(threading.Thread):
             logger.debug("Listener thread complete...")
             if self._request_to_stop:
                 break
-            logger.warn("Failed to create listener or listener exited, will sleep 10 seconds before retrying")
-            time.sleep(10)
+            logger.warning("Failed to create listener or listener exited, will sleep 10 seconds before retrying")
+            if self._stop_event.wait(10):
+                break

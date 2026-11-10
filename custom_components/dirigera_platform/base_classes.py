@@ -39,10 +39,15 @@ from enum import Enum
 import logging 
 import math
 import datetime
+import time
+
+from homeassistant.core import callback
+from homeassistant.helpers.event import async_call_later
 
 logger = logging.getLogger("custom_components.dirigera_platform")
 
 DATE_TIME_FORMAT:str = "%Y-%m-%dT%H:%M:%S.%fZ"
+BLIND_MOVE_TIMEOUT = 5  # seconds without a level report => blind has stopped
 
 def induce_properties(class_to_induce, attr):
     for key in attr.keys():
@@ -91,6 +96,17 @@ class ikea_base_device:
     @property
     def should_register_with_listener(self):
         return True 
+
+    @property
+    def should_poll(self) -> bool:
+        # State arrives via the hub websocket (plus a periodic bulk resync).
+        # Polling every entity individually overloads the hub.
+        return self.needs_polling
+
+    @property
+    def needs_polling(self) -> bool:
+        # True only for device types whose state is NOT delivered by the event listener
+        return False
     
     @property
     def device_info(self) -> DeviceInfo:
@@ -188,6 +204,10 @@ class ikea_base_device_sensor():
     def native_unit_of_measurement(self) -> str:
         return self._native_unit_of_measurement
     
+    @property
+    def should_poll(self) -> bool:
+        return self._device.needs_polling
+
     async def async_update(self):
         await self._device.async_update()
 
@@ -361,35 +381,76 @@ class ikea_blinds_sensor(ikea_base_device_sensor, CoverEntity):
             return False
         return self.current_cover_position == 0
 
+    # The hub only reports the current level while a blind moves (about once a
+    # second) and does not reliably report a target level when the blind is
+    # moved with its remote. So the direction is derived from the movement of
+    # the current level itself, and the entity settles back to open/closed
+    # once no movement has been reported for BLIND_MOVE_TIMEOUT seconds.
+    def _track_motion(self):
+        try:
+            current = self.current_cover_position
+        except (TypeError, AttributeError):
+            return None
+        last = getattr(self, "_last_position", None)
+        if last is not None and current is not None and current != last:
+            self._motion_direction = 1 if current > last else -1
+            self._last_motion = time.monotonic()
+        self._last_position = current
+        return current
+
+    def _moving_direction(self) -> int:
+        self._track_motion()
+        last_motion = getattr(self, "_last_motion", 0.0)
+        if time.monotonic() - last_motion >= BLIND_MOVE_TIMEOUT:
+            return 0
+        self._schedule_settle()
+        return getattr(self, "_motion_direction", 0)
+
+    def _schedule_settle(self):
+        if getattr(self, "_settle_unsub", None) is not None or self.hass is None:
+            return
+
+        @callback
+        def _settle(_now):
+            self._settle_unsub = None
+            self.async_write_ha_state()
+
+        # fire shortly after the movement timeout, counted from the last level report
+        last_motion = getattr(self, "_last_motion", 0.0)
+        delay = max(0.5, last_motion + BLIND_MOVE_TIMEOUT - time.monotonic() + 0.3)
+        self._settle_unsub = async_call_later(self.hass, delay, _settle)
+
+    def _start_motion(self, target_position: int):
+        current = self._track_motion()
+        if current is None or target_position == current:
+            return
+        self._motion_direction = 1 if target_position > current else -1
+        self._last_motion = time.monotonic()
+
     @property
     def is_closing(self):
-        if self.current_cover_position is None or self.target_cover_position is False:
-            return False
-
-        if self.current_cover_position != 0 and self.target_cover_position == 0:
-            return True
-
-        return False
+        # HA position: 100 = open, 0 = closed
+        return self._moving_direction() < 0
 
     @property
     def is_opening(self):
-        if self.current_cover_position is None or self.target_cover_position is False:
-            return False
-
-        if self.current_cover_position != 100 and self.target_cover_position == 100:
-            return True
-
-        return False
+        return self._moving_direction() > 0
 
     async def async_open_cover(self, **kwargs):
         await self._device.async_open_cover()
+        self._start_motion(100)
+        self.async_write_ha_state()
 
     async def async_close_cover(self, **kwargs):
         await self._device.async_close_cover()
+        self._start_motion(0)
+        self.async_write_ha_state()
 
     async def async_set_cover_position(self, **kwargs):
         position = int(kwargs["position"])
         await self._device.async_set_cover_position(position)
+        self._start_motion(position)
+        self.async_write_ha_state()
 
 class ikea_vindstyrka_device(ikea_base_device):
     def __init__(self, hass:core.HomeAssistant, hub:Hub , json_data:EnvironmentSensor) -> None:
@@ -559,6 +620,11 @@ class ikea_controller_device(ikea_base_device, SensorEntity):
         pass
 
 class ikea_starkvind_air_purifier_device(ikea_base_device):
+    @property
+    def needs_polling(self) -> bool:
+        # airPurifier events are not processed by hub_event_listener
+        return True
+
     def __init__(self, hass, hub, json_data) -> None:
         logger.debug("Air purifer Fan device ctor ...")
         super().__init__(hass, hub, json_data, hub.get_air_purifier_by_id)
